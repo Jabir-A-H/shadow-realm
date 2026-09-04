@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@theme {
+  /* Sumi-e & Aged Parchment Foundations */
+  --color-parchment: #f4ebd0;
+  --color-parchment-light: #fbf7ec;
+  --color-parchment-dark: #e2d5b3;
+  --color-sumi-ink: #141414;
+  --color-sumi-charcoal: #242424;
+  --color-sumi-wash: #1a1a1acc;
+
+  /* The 7 Chromatic Kingdom Pigments */
+  --color-frost-cyan: #48cae4;
+  --color-abyssal-navy: #1d3557;
+  --color-sky-cerulean: #90e0ef;
+  --color-molten-gold: #e0a96d;
+  --color-emerald-jade: #2d6a4f;
+  --color-rushing-teal: #0077b6;
+  --color-blood-vermilion: #b3312c;
+  --color-citadel-purple: #7209b7;
+
+  /* Typography */
+  --font-cinzel: 'Cinzel', serif;
+  --font-sumi: 'Noto Serif JP', 'Cinzel', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Custom Sumi-e Aesthetics & Ink Textures */
+@layer base {
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-sumi-ink);
+    color: var(--color-parchment);
+    font-family: var(--font-sumi);
+    user-select: none;
+    touch-action: manipulation;
+  }
+}
+
+/* Ink Wash & Parchment Texture Shaders */
+.bg-parchment-texture {
+  background-color: #f4ebd0;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(20, 20, 20, 0.03) 0%, rgba(20, 20, 20, 0.08) 100%),
+    linear-gradient(to right, rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 24px 24px, 24px 24px;
+}
+
+.bg-sumi-texture {
+  background-color: #141414;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(244, 235, 208, 0.02) 0%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+/* Ink Brush Borders */
+.border-ink-rough {
+  border-style: solid;
+  border-image: linear-gradient(to right, #141414 0%, #3a3a3a 50%, #141414 100%) 1;
+}
+
+/* Silhouette Character Effect */
+.silhouette-glow {
+  filter: drop-shadow(0 0 12px rgba(244, 235, 208, 0.15));
+}
+
+.silhouette-shadow {
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.8));
+}
+
+/* Vermilion Seal Stamping Animation */
+@keyframes stampIn {
+  0% {
+    transform: scale(3) rotate(-15deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(0.9) rotate(2deg);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-seal-stamp {
+  animation: stampIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Custom Scrollbar for parchment scrolls */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(20, 20, 20, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(244, 235, 208, 0.2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 235, 208, 0.4);
+}
