@@ -110,3 +110,97 @@ export const CONTINENTAL_REGIONS: Record<string, RegionZone> = {
     description: 'The monumental black glass library where the Great Scroll was originally shattered.',
   },
 };
+
+export const COLOR_GATES: ColorGateTrigger[] = [
+  {
+    id: 'gate-north',
+    name: 'Glacial Chasm & Waterfall',
+    requiredPigment: 'frost-cyan',
+    x: 580,
+    y: 300,
+    width: 120,
+    height: 40,
+    connectsFrom: 'river-crossings',
+    connectsTo: 'frozen-reach',
+  },
+  {
+    id: 'gate-west',
+    name: 'Abyssal Mist Straits',
+    requiredPigment: 'abyssal-navy',
+    x: 430,
+    y: 440,
+    width: 40,
+    height: 90,
+    connectsFrom: 'river-crossings',
+    connectsTo: 'drowned-isles',
+  },
+  {
+    id: 'gate-east',
+    name: 'Howling Wind Gorge',
+    requiredPigment: 'sky-cerulean',
+    x: 840,
+    y: 440,
+    width: 40,
+    height: 90,
+    connectsFrom: 'river-crossings',
+    connectsTo: 'high-vale',
+  },
+  {
+    id: 'gate-vault',
+    name: 'Gilded Vault Portcullis',
+    requiredPigment: 'molten-gold',
+    x: 480,
+    y: 760,
+    width: 40,
+    height: 90,
+    connectsFrom: 'river-crossings',
+    connectsTo: 'gilded-vault',
+  },
+  {
+    id: 'gate-verdant',
+    name: 'Brier Thorn Cliff',
+    requiredPigment: 'emerald-jade',
+    x: 770,
+    y: 630,
+    width: 90,
+    height: 40,
+    connectsFrom: 'river-crossings',
+    connectsTo: 'verdant-reach',
+  },
+  {
+    id: 'gate-dunes',
+    name: 'Vermilion Sandstorm Pass',
+    requiredPigment: 'blood-vermilion',
+    x: 590,
+    y: 950,
+    width: 100,
+    height: 40,
+    connectsFrom: 'river-crossings',
+    connectsTo: 'scorched-dunes',
+  },
+  {
+    id: 'gate-citadel',
+    name: 'Primordial Rift Gate',
+    requiredPigment: 'full-spectrum',
+    x: 590,
+    y: 1310,
+    width: 100,
+    height: 40,
+    connectsFrom: 'scorched-dunes',
+    connectsTo: 'obsidian-citadel',
+  },
+];
+
+export const getRegionAt = (x: number, y: number): RegionZone => {
+  for (const region of Object.values(CONTINENTAL_REGIONS)) {
+    if (
+      x >= region.bounds.minX &&
+      x <= region.bounds.maxX &&
+      y >= region.bounds.minY &&
+      y <= region.bounds.maxY
+    ) {
+      return region;
+    }
+  }
+  return CONTINENTAL_REGIONS['river-crossings'];
+};

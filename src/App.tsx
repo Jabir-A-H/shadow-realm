@@ -14,10 +14,12 @@ import {
   Music,
   Layers,
   Compass,
+  Gamepad2,
 } from 'lucide-react';
 import { useSpectrum, PIGMENT_REGISTRY, Pigment, EnvironmentalBarrier } from './contexts/SpectrumContext';
 import { useSaveGame } from './contexts/SaveGameContext';
 import { useAudio, ProceduralSfxType } from './contexts/AudioContext';
+import { PhaserOverworld } from './components/overworld/PhaserOverworld';
 
 export const App: React.FC = () => {
   const {
@@ -33,7 +35,7 @@ export const App: React.FC = () => {
   const { saveData, stampSeal, resetGame } = useSaveGame();
   const { isMuted, toggleMute, playSfx } = useAudio();
 
-  const [activeTab, setActiveTab] = useState<'spectrum' | 'audio' | 'world'>('spectrum');
+  const [activeTab, setActiveTab] = useState<'overworld' | 'spectrum' | 'audio' | 'world'>('overworld');
 
   const handleSealClick = (pigment: Pigment) => {
     if (hasPigment(pigment)) {
@@ -104,8 +106,8 @@ export const App: React.FC = () => {
           <div>
             <h1 className="font-serif tracking-widest text-lg md:text-xl font-bold text-[#f4ebd0] flex items-center gap-2">
               SHADOW REALM
-              <span className="text-xs font-mono font-normal tracking-normal text-[#90e0ef] bg-[#1d3557]/60 px-2 py-0.5 rounded border border-[#90e0ef]/30">
-                PHASE 1
+              <span className="text-xs font-mono font-normal tracking-normal text-[#e0a96d] bg-[#b3312c]/30 px-2 py-0.5 rounded border border-[#b3312c]/50">
+                PHASE 2: OVERWORLD
               </span>
             </h1>
             <p className="text-xs text-[#f4ebd0]/60 tracking-wider">
@@ -149,11 +151,26 @@ export const App: React.FC = () => {
           <button
             onClick={() => {
               playSfx('click');
+              setActiveTab('overworld');
+            }}
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+              activeTab === 'overworld'
+                ? 'bg-[#2a2a2a] text-[#f4ebd0] border-l-4 border-[#b3312c] shadow-md'
+                : 'text-[#f4ebd0]/60 hover:bg-[#222] hover:text-[#f4ebd0]'
+            }`}
+          >
+            <Gamepad2 size={18} className="text-[#b3312c]" />
+            <span>Explore Overworld</span>
+          </button>
+
+          <button
+            onClick={() => {
+              playSfx('click');
               setActiveTab('spectrum');
             }}
             className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition ${
               activeTab === 'spectrum'
-                ? 'bg-[#2a2a2a] text-[#f4ebd0] border-l-4 border-[#b3312c] shadow-md'
+                ? 'bg-[#2a2a2a] text-[#f4ebd0] border-l-4 border-[#e0a96d] shadow-md'
                 : 'text-[#f4ebd0]/60 hover:bg-[#222] hover:text-[#f4ebd0]'
             }`}
           >
@@ -203,7 +220,12 @@ export const App: React.FC = () => {
         </nav>
 
         {/* Tab Viewport */}
-        <section className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#141414] bg-sumi-texture">
+        {activeTab === 'overworld' ? (
+          <section className="flex-1 w-full h-full relative overflow-hidden bg-[#141414]">
+            <PhaserOverworld />
+          </section>
+        ) : (
+          <section className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#141414] bg-sumi-texture">
           {activeTab === 'spectrum' && (
             <div className="max-w-4xl mx-auto space-y-6">
               <div className="border border-[#333] rounded-xl p-5 bg-[#1b1b1b]/80 backdrop-blur-sm shadow-xl">
@@ -382,6 +404,7 @@ export const App: React.FC = () => {
             </div>
           )}
         </section>
+        )}
       </main>
     </div>
   );

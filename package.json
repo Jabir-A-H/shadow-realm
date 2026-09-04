@@ -16,6 +16,7 @@
     "canvas-confetti": "^1.9.4",
     "lucide-react": "^1.16.0",
     "motion": "^12.4.0",
+    "phaser": "^4.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
