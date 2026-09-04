@@ -18,8 +18,8 @@ shadow-realm/
 │   └── tauri.conf.json
 ├── docs/                        # Architecture & design documents
 ├── public/
-│   ├── audio/                   # Sound effects, ambient tracks
-│   └── sprites/                 # Tilesets, silhouette sheets, parchment textures
+│   ├── audio/                   # Sound effects, ambient tracks, audio sprites
+│   └── sprites/                 # Tilesets, Tiled-JSON maps, silhouette sheets, parchment textures
 └── src/
     ├── main.tsx
     ├── App.tsx
@@ -27,43 +27,46 @@ shadow-realm/
     ├── contexts/
     │   ├── SpectrumContext.tsx   # Manages active pigments & world visibility masks
     │   ├── SaveGameContext.tsx   # Game progress, unlocked seals, local/cloud storage
-    │   └── AudioContext.tsx      # Web Audio API sound manager & music mixer
+    │   └── AudioContext.tsx      # Howler.js audio manager & sound effects triggers
     ├── components/
     │   ├── overworld/
-    │   │   ├── OverworldCanvas.tsx # Kaplay / 2D Canvas tilemap renderer
+    │   │   ├── PhaserOverworld.tsx # Phaser 3 container component with Tiled map loader
     │   │   ├── WorldMapModal.tsx   # Parchment 7 Kingdoms map
-    │   │   ├── DialogueOverlay.tsx # Silhouette portrait NPC conversations
-    │   │   └── BossIntroCutscene.tsx# Shadow Fight 2 style pre-duel clash animation
+    │   │   ├── DialogueOverlay.tsx # Silhouette portrait NPC conversations (Motion)
+    │   │   └── BossIntroCutscene.tsx# Shadow Fight 2 style pre-duel clash animation (Motion)
     │   ├── ui/
     │   │   ├── GreatScroll.tsx     # 7 Vermilion Seals status & trophy museum
     │   │   ├── QuickArcadeDrawer.tsx# Direct jump launcher for instant play / lobbies
     │   │   └── HUD.tsx             # Active color gems, compass, pause menu
-    │   └── games/                  # Ported & Themed Game Components
-    │       ├── maai/               # Ma-ai (The Neutral) 1D Spacing Duel
-    │       ├── impact/             # Ink Impact (Space Impact-style horizontal ink shmup)
-    │       ├── archery/            # Sky Cerulean Range (Yoichi's Peak)
-    │       ├── uno/                # The Gilded Den (1v1, 6P Party, No Mercy)
-    │       ├── fleet/              # Abyssal Navy Bay (Battleship vs AI/Online)
-    │       ├── rush/               # River Crossings 2-lane reflex runner
-    │       ├── slide/              # Frost Reach 30-level ice puzzles
-    │       ├── bloom/              # Verdant Reach chain reaction garden
-    │       ├── tictactoe/          # Scorched Dunes Gomoku/TTC
-    │       ├── connect4/           # Red Viper's Gravity Grid
-    │       ├── sudoku/             # Citadel 200 rated logic scrolls
-    │       ├── memory/             # Archive speedrun glyph matching
-    │       ├── outlaw/             # Top-down twin-stick badlands arena
-    │       └── reaction/           # Bamboo grove quick-draw reflex test
+    │   └── games/                  # Game Modules (Phaser Action + React UI)
+    │       ├── phaser/             # Phaser 3 Action Games
+    │       │   ├── maai/           # Ma-ai (The Neutral) 1D Spacing Duel Scene
+    │       │   ├── impact/         # Ink Impact Shmup Scene (Object pooling)
+    │       │   ├── outlaw/         # Rogue Outlaw Top-Down Arena Scene
+    │       │   └── rush/           # Ink Rush 2-Lane Reflex Runner Scene
+    │       └── react/              # React 19 + Tailwind Puzzle / Board Games
+    │           ├── uno/            # The Gilded Den (1v1, 6P Party, No Mercy, Supabase)
+    │           ├── fleet/          # Abyssal Navy Bay (Battleship vs AI/Online)
+    │           ├── archery/        # Sky Cerulean Range (Yoichi's Peak)
+    │           ├── slide/          # Frost Reach 30-level ice puzzles
+    │           ├── bloom/          # Verdant Reach chain reaction garden
+    │           ├── tictactoe/      # Scorched Dunes Gomoku/TTC
+    │           ├── connect4/       # Red Viper's Gravity Grid (Minimax AI)
+    │           ├── sudoku/         # Citadel 200 rated logic scrolls
+    │           ├── memory/         # Archive speedrun glyph matching
+    │           └── reaction/       # Bamboo grove quick-draw reflex test
     └── lib/
         ├── engine/
+        │   ├── phaserConfig.ts     # Phaser 3 root configuration & scene registry
         │   ├── tilemapData.ts      # 7 Kingdoms continental coordinates & triggers
-        │   ├── collision.ts        # Overworld obstacle & color-gate detection
-        │   └── colorFilters.ts     # Canvas/SVG color tint shaders
-        ├── games/                  # Core engines
+        │   └── colorFilters.ts     # Canvas/SVG color tint & ink displacement shaders
+        ├── games/                  # Shared game engines from personal-website
         │   ├── useArcadePeerRoom.ts# Supabase Realtime multiplayer engine
         │   ├── minimax.ts          # Connect-4 & Gomoku AI
         │   ├── slideSolver.ts      # BFS ice puzzle validator
         │   └── arcadeCrypto.ts     # Room IDs & crypto callsigns
-        └── supabase.ts             # Supabase client credentials
+        └── audio/
+            └── soundManager.ts     # Howler.js audio sprite map & mobile unlock
 ```
 
 ---
@@ -94,19 +97,26 @@ export interface SpectrumState {
 
 ### 2.2 Overworld-to-Minigame Transition Flow
 
-1. Player approaches an Arena Gate or Warden Shrine on the overworld map.
+1. Player approaches an Arena Gate or Warden Shrine on the overworld map (handled by Phaser 3 trigger zone).
 2. An interaction prompt appears (`Press E or Tap to Challenge`).
-3. Pressing interact triggers `BossIntroCutscene`:
-   - Overworld pauses.
+3. Pressing interact triggers `BossIntroCutscene` (rendered by React + Motion):
+   - Overworld Phaser scene pauses.
    - Screen dims with an ink splatter animation.
    - Dramatic 1v1 silhouette standoff with Japanese calligraphy titles (*"VS. THE FROST KING"*).
-4. Minigame mounts in a full-screen or focused modal shell with regional color accents.
+4. Minigame mounts:
+   - If action-based (*Ma-ai*, *Ink Impact*): Phaser switches scene to the dedicated action game loop.
+   - If strategy/card-based (*Uno*, *Connect-4*, *Slide*): React renders the UI game component.
 5. On victory:
    - Vermilion Seal stamping sequence plays.
    - Corresponding pigment is added to `SpectrumContext`.
-   - Overworld unpauses; newly unlocked environmental paths solidify.
+   - Overworld unpauses; newly unlocked environmental paths solidify in the Phaser tilemap.
 
-### 2.3 Multiplayer Networking Architecture
+### 2.3 Audio Architecture (Howler.js)
+* All game audio is centralized through `src/lib/audio/soundManager.ts` using Howler.js.
+* Audio sprites are used for rapid one-shot SFX (`sword-clash`, `ink-splash`, `whiff`, `block`, `card-slap`).
+* Mobile touch automatically triggers `Howler.autoUnlock = true`, bypassing mobile browser autoplay restrictions cleanly.
+
+### 2.4 Multiplayer Networking Architecture
 * Built on **Supabase Realtime** (`broadcast` + `presence`).
 * Zero database table writes required for real-time play; all game packets are ephemeral WebSocket broadcasts.
 * Room codes are 4-character unambiguous uppercase strings (`generateRoomId`).

@@ -103,9 +103,11 @@
 
 ## 🛠️ Architecture & Tech Stack
 
-* **App Shell**: **Vite + React 19 + TypeScript + Tailwind CSS v4**
-* **2D Overworld & Action Canvas**: **Kaplay.js** / Custom 2D Canvas embedded in React.
-* **Multiplayer Networking**: **Supabase Realtime** (`broadcast` + `presence` WebSockets, zero-DB latency).
+* **App Shell & UI Games**: **Vite + React 19 + TypeScript + Tailwind CSS v4**
+* **2D Overworld & Action Canvas**: **Phaser 3** (`Arcade Physics`, Tiled-JSON tilemaps, projectile pooling)
+* **UI Animation & Transitions**: **Motion** (DOM modals, dialogue, cutscenes)
+* **Audio Engine**: **Howler.js** (cross-browser Web Audio, mobile unlock, audio sprites)
+* **Multiplayer Networking**: **Supabase Realtime** (`broadcast` + `presence` WebSockets, zero-DB latency)
 * **Cross-Platform Export Pipeline**:
   * **Web**: Instant browser play with 1-click room URL sharing.
   * **Android (APK)**: Native `.apk` / `.aab` via **Capacitor Android**.
