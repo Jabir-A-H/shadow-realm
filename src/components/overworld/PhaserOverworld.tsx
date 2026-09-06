@@ -18,15 +18,37 @@ import { useAudio, ProceduralSfxType } from '../../contexts/AudioContext';
 import { DialogueOverlay } from './DialogueOverlay';
 import { WorldMapModal } from './WorldMapModal';
 import { VirtualJoystick } from './VirtualJoystick';
+import { BossIntroCutscene } from './BossIntroCutscene';
 import { CONTINENTAL_REGIONS } from '../../lib/engine/tilemapData';
+import { ActionGameId, ACTION_GAMES_METADATA } from '../../lib/games/actionGameTypes';
+import { BladeDuelModal } from '../games/BladeDuelModal';
+import { InkImpactModal } from '../games/InkImpactModal';
+import { RogueOutlawModal } from '../games/RogueOutlawModal';
+import { InkRushModal } from '../games/InkRushModal';
 import confetti from 'canvas-confetti';
+
+const getTrialForRegion = (regionId: string): ActionGameId => {
+  switch (regionId) {
+    case 'frozen-reach':
+      return 'blade-duel';
+    case 'river-crossings':
+      return 'ink-rush';
+    case 'high-vale':
+    case 'drowned-isles':
+      return 'ink-impact';
+    case 'scorched-dunes':
+      return 'rogue-outlaw';
+    default:
+      return 'blade-duel';
+  }
+};
 
 export const PhaserOverworld: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameHandleRef = useRef<OverworldGameHandle | null>(null);
 
   const { unlockedPigments, unlockPigment, hasPigment } = useSpectrum();
-  const { saveData, updateCoords, stampSeal } = useSaveGame();
+  const { saveData, updateCoords, stampSeal, recordGameResult } = useSaveGame();
   const { playSfx, isMuted, toggleMute } = useAudio();
 
   // Overworld UI State
@@ -43,6 +65,11 @@ export const PhaserOverworld: React.FC = () => {
   const [encounterWardenId, setEncounterWardenId] = useState<string | null>(null);
   const [regionBanner, setRegionBanner] = useState<{ name: string; motto: string } | null>(null);
   const [barrierAlert, setBarrierAlert] = useState<{ name: string; pigment: Pigment } | null>(null);
+
+  // Trial Action State
+  const [activeBossCutscene, setActiveBossCutscene] = useState<ActionGameId | null>(null);
+  const [activeTrialGame, setActiveTrialGame] = useState<ActionGameId | null>(null);
+  const [challengingWardenRegion, setChallengingWardenRegion] = useState<string | null>(null);
 
   // Mobile / Touch controls toggle
   const [showTouchControls, setShowTouchControls] = useState<boolean>(() => {
@@ -119,7 +146,7 @@ export const PhaserOverworld: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'm' || e.key === 'M') {
-        if (!encounterWardenId) {
+        if (!encounterWardenId && !activeBossCutscene && !activeTrialGame) {
           playSfx('parchment');
           setIsMapOpen((prev) => !prev);
         }
@@ -131,7 +158,7 @@ export const PhaserOverworld: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [encounterWardenId, playSfx]);
+  }, [encounterWardenId, activeBossCutscene, activeTrialGame, playSfx]);
 
   // Fast Travel handler
   const handleFastTravel = useCallback(
@@ -143,33 +170,55 @@ export const PhaserOverworld: React.FC = () => {
     []
   );
 
-  // Challenge / Seal Stamping handler
-  const handleWardenChallenge = (pigment: Pigment) => {
-    if (!hasPigment(pigment)) {
-      unlockPigment(pigment);
-      stampSeal(pigment, 100);
-      playSfx('victory');
-      playSfx('seal-stamp');
+  // Challenge Warden -> Trigger Cutscene -> Minigame
+  const handleWardenChallenge = (_pigment: Pigment) => {
+    const regionId = encounterWardenId || 'frozen-reach';
+    const trialId = getTrialForRegion(regionId);
+    setChallengingWardenRegion(regionId);
+    setEncounterWardenId(null);
+    setActiveBossCutscene(trialId);
+  };
 
-      // Confetti celebration
-      const hex = PIGMENT_REGISTRY[pigment].colorHex;
-      try {
-        confetti({
-          particleCount: 70,
-          spread: 80,
-          origin: { y: 0.6 },
-          colors: [hex, '#f4ebd0', '#141414'],
-        });
-      } catch {
-        // Fallback
-      }
-    } else {
-      playSfx('clash');
-    }
+  const handleStartMinigame = () => {
+    const trial = activeBossCutscene;
+    setActiveBossCutscene(null);
+    setActiveTrialGame(trial);
+  };
+
+  const handleTrialVictory = (score: number) => {
+    if (!challengingWardenRegion || !activeTrialGame) return;
+
+    const reg = CONTINENTAL_REGIONS[challengingWardenRegion];
+    const pigment = reg ? reg.pigment : 'frost-cyan';
+
+    recordGameResult(activeTrialGame, true, score);
+    stampSeal(pigment, score);
+    unlockPigment(pigment);
+
+    playSfx('victory');
+    playSfx('seal-stamp');
+
+    const hex = PIGMENT_REGISTRY[pigment].colorHex;
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: [hex, '#f4ebd0', '#141414'],
+      });
+    } catch {}
+
+    setActiveTrialGame(null);
+    setChallengingWardenRegion(null);
   };
 
   const activeRegion = CONTINENTAL_REGIONS[currentRegionId] || CONTINENTAL_REGIONS['river-crossings'];
   const activePigment = PIGMENT_REGISTRY[activeRegion.pigment];
+
+  const challengingRegionData = challengingWardenRegion
+    ? CONTINENTAL_REGIONS[challengingWardenRegion]
+    : activeRegion;
+  const challengingPigment = challengingRegionData ? PIGMENT_REGISTRY[challengingRegionData.pigment] : activePigment;
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#141414] select-none">
@@ -291,7 +340,7 @@ export const PhaserOverworld: React.FC = () => {
                 <p className="text-[11px] font-mono text-[#f4ebd0]/70">
                   Requires <strong style={{ color: PIGMENT_REGISTRY[barrierAlert.pigment].colorHex }}>
                     {PIGMENT_REGISTRY[barrierAlert.pigment].name}
-                  </strong> pigment to cross. Defeat the Warden in sacred trial!
+                  </strong> pigment to cross. Defeat the Warden in sacred combat trial!
                 </p>
               </div>
             </div>
@@ -327,7 +376,67 @@ export const PhaserOverworld: React.FC = () => {
         />
       )}
 
-      {/* 8. Continental World Map Modal */}
+      {/* 8. Boss Intro Cutscene */}
+      {activeBossCutscene && (
+        <BossIntroCutscene
+          gameConfig={ACTION_GAMES_METADATA[activeBossCutscene]}
+          isOpen={true}
+          onStartGame={handleStartMinigame}
+          wardenColorHex={challengingPigment.colorHex}
+        />
+      )}
+
+      {/* 9. Action Minigame Modals */}
+      {activeTrialGame === 'blade-duel' && (
+        <BladeDuelModal
+          isOpen={true}
+          onClose={() => {
+            setActiveTrialGame(null);
+            setChallengingWardenRegion(null);
+          }}
+          onVictory={handleTrialVictory}
+          wardenName={challengingPigment.warden}
+          wardenColorHex={challengingPigment.colorHex}
+        />
+      )}
+
+      {activeTrialGame === 'ink-impact' && (
+        <InkImpactModal
+          isOpen={true}
+          onClose={() => {
+            setActiveTrialGame(null);
+            setChallengingWardenRegion(null);
+          }}
+          onVictory={handleTrialVictory}
+          wardenColorHex={challengingPigment.colorHex}
+        />
+      )}
+
+      {activeTrialGame === 'rogue-outlaw' && (
+        <RogueOutlawModal
+          isOpen={true}
+          onClose={() => {
+            setActiveTrialGame(null);
+            setChallengingWardenRegion(null);
+          }}
+          onVictory={handleTrialVictory}
+          wardenColorHex={challengingPigment.colorHex}
+        />
+      )}
+
+      {activeTrialGame === 'ink-rush' && (
+        <InkRushModal
+          isOpen={true}
+          onClose={() => {
+            setActiveTrialGame(null);
+            setChallengingWardenRegion(null);
+          }}
+          onVictory={handleTrialVictory}
+          wardenColorHex={challengingPigment.colorHex}
+        />
+      )}
+
+      {/* 10. Continental World Map Modal */}
       <WorldMapModal
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}

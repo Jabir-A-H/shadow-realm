@@ -960,15 +960,15 @@ export class OverworldScene extends Phaser.Scene {
 
   private getPigmentKanji(pigment: Pigment): string {
     const map: Record<Pigment, string> = {
-      'frost-cyan': '氷',
-      'abyssal-navy': '海',
-      'sky-cerulean': '風',
-      'molten-gold': '金',
-      'emerald-jade': '木',
-      'rushing-teal': '川',
-      'blood-vermilion': '炎',
-      'full-spectrum': '極',
+      'frost-cyan': 'ICE',
+      'abyssal-navy': 'SEA',
+      'sky-cerulean': 'SKY',
+      'molten-gold': 'GOLD',
+      'emerald-jade': 'JADE',
+      'rushing-teal': 'RIVER',
+      'blood-vermilion': 'FIRE',
+      'full-spectrum': 'APEX',
     };
-    return map[pigment] || '印';
+    return map[pigment] || 'SEAL';
   }
 }

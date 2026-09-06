@@ -33,7 +33,7 @@ export const PIGMENT_REGISTRY: Record<Pigment, PigmentMeta> = {
     title: 'The Ice Lich',
     colorHex: '#48cae4',
     motto: 'Winter is Drawn.',
-    sealKanji: '氷', // Ice
+    sealKanji: 'ICE',
     perceptiveAbility: 'Freezes raging torrents into solid ice bridges and reveals hidden ice cavern trials.',
   },
   'abyssal-navy': {
@@ -45,7 +45,7 @@ export const PIGMENT_REGISTRY: Record<Pigment, PigmentMeta> = {
     title: 'Drowned Reaver',
     colorHex: '#1d3557',
     motto: 'What is Sunk May Never Float.',
-    sealKanji: '海', // Sea
+    sealKanji: 'SEA',
     perceptiveAbility: 'Parts supernatural ocean mists and unlocks sea ferry crossings.',
   },
   'sky-cerulean': {
@@ -57,7 +57,7 @@ export const PIGMENT_REGISTRY: Record<Pigment, PigmentMeta> = {
     title: 'Aerial Champion',
     colorHex: '#90e0ef',
     motto: 'As High as the Arrow Flies.',
-    sealKanji: '風', // Wind
+    sealKanji: 'SKY',
     perceptiveAbility: 'Reveals floating wind updrafts allowing traversal across chasm gorges.',
   },
   'molten-gold': {
@@ -69,7 +69,7 @@ export const PIGMENT_REGISTRY: Record<Pigment, PigmentMeta> = {
     title: 'High-Stakes Tycoon',
     colorHex: '#e0a96d',
     motto: 'A Warden Always Pays His Debt.',
-    sealKanji: '金', // Gold
+    sealKanji: 'GOLD',
     perceptiveAbility: 'Illuminates hidden golden inscriptions and opens secret card den speakeasy doors.',
   },
   'emerald-jade': {
@@ -81,7 +81,7 @@ export const PIGMENT_REGISTRY: Record<Pigment, PigmentMeta> = {
     title: 'Matriarch of the Bloom',
     colorHex: '#2d6a4f',
     motto: 'Growing Explosions.',
-    sealKanji: '木', // Wood / Flora
+    sealKanji: 'JADE',
     perceptiveAbility: 'Sprouts ancient living root vines along sheer cliff walls for climbing.',
   },
   'rushing-teal': {
@@ -93,7 +93,7 @@ export const PIGMENT_REGISTRY: Record<Pigment, PigmentMeta> = {
     title: 'Swiftblade of the Trident',
     colorHex: '#0077b6',
     motto: 'Family. Duty. Reflexes.',
-    sealKanji: '川', // River
+    sealKanji: 'RIVER',
     perceptiveAbility: 'Reveals stable shallow sandbars across rushing river forks.',
   },
   'blood-vermilion': {
@@ -105,7 +105,7 @@ export const PIGMENT_REGISTRY: Record<Pigment, PigmentMeta> = {
     title: 'Poison Spear Duelist',
     colorHex: '#b3312c',
     motto: 'Unbowed. Unbent. Unbeaten.',
-    sealKanji: '炎', // Flame
+    sealKanji: 'FIRE',
     perceptiveAbility: 'Disperses blinding dust devils and unearths buried badland ruins.',
   },
   'full-spectrum': {
@@ -117,7 +117,7 @@ export const PIGMENT_REGISTRY: Record<Pigment, PigmentMeta> = {
     title: 'Keeper of the Ancient Seal',
     colorHex: '#7209b7',
     motto: 'Knowledge is Shadow.',
-    sealKanji: '極', // Zenith / Ultimate
+    sealKanji: 'APEX',
     perceptiveAbility: 'Dissolves the Primordial Rift Gate leading to the realm\'s restoration.',
   },
 };

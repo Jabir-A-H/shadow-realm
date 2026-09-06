@@ -15,11 +15,13 @@ import {
   Layers,
   Compass,
   Gamepad2,
+  Flame,
 } from 'lucide-react';
 import { useSpectrum, PIGMENT_REGISTRY, Pigment, EnvironmentalBarrier } from './contexts/SpectrumContext';
 import { useSaveGame } from './contexts/SaveGameContext';
 import { useAudio, ProceduralSfxType } from './contexts/AudioContext';
 import { PhaserOverworld } from './components/overworld/PhaserOverworld';
+import { ArcadeTrialsView } from './components/games/ArcadeTrialsView';
 
 export const App: React.FC = () => {
   const {
@@ -35,7 +37,7 @@ export const App: React.FC = () => {
   const { saveData, stampSeal, resetGame } = useSaveGame();
   const { isMuted, toggleMute, playSfx } = useAudio();
 
-  const [activeTab, setActiveTab] = useState<'overworld' | 'spectrum' | 'audio' | 'world'>('overworld');
+  const [activeTab, setActiveTab] = useState<'overworld' | 'trials' | 'spectrum' | 'audio' | 'world'>('overworld');
 
   const handleSealClick = (pigment: Pigment) => {
     if (hasPigment(pigment)) {
@@ -100,14 +102,14 @@ export const App: React.FC = () => {
       {/* Top Header / Status Bar */}
       <header className="flex items-center justify-between px-6 py-3 border-b border-[#2a2a2a] bg-[#1a1a1a]/80 backdrop-blur-md z-30">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-[#b3312c] flex items-center justify-center font-bold text-white shadow-lg shadow-[#b3312c]/30 text-lg border border-[#f4ebd0]/30 font-serif">
-            影
+          <div className="w-9 h-9 rounded-full bg-[#b3312c] flex items-center justify-center font-bold text-white shadow-lg shadow-[#b3312c]/30 text-sm border border-[#f4ebd0]/30 font-serif">
+            <Swords size={18} />
           </div>
           <div>
             <h1 className="font-serif tracking-widest text-lg md:text-xl font-bold text-[#f4ebd0] flex items-center gap-2">
               SHADOW REALM
               <span className="text-xs font-mono font-normal tracking-normal text-[#e0a96d] bg-[#b3312c]/30 px-2 py-0.5 rounded border border-[#b3312c]/50">
-                PHASE 2: OVERWORLD
+                PHASE 3: ACTION TRIALS
               </span>
             </h1>
             <p className="text-xs text-[#f4ebd0]/60 tracking-wider">
@@ -166,16 +168,31 @@ export const App: React.FC = () => {
           <button
             onClick={() => {
               playSfx('click');
-              setActiveTab('spectrum');
+              setActiveTab('trials');
             }}
             className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition ${
-              activeTab === 'spectrum'
+              activeTab === 'trials'
                 ? 'bg-[#2a2a2a] text-[#f4ebd0] border-l-4 border-[#e0a96d] shadow-md'
                 : 'text-[#f4ebd0]/60 hover:bg-[#222] hover:text-[#f4ebd0]'
             }`}
           >
-            <Sparkles size={18} className="text-[#e0a96d]" />
-            <span>7 Kingdoms Spectrum</span>
+            <Flame size={18} className="text-[#e0a96d]" />
+            <span>Action Trials</span>
+          </button>
+
+          <button
+            onClick={() => {
+              playSfx('click');
+              setActiveTab('spectrum');
+            }}
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+              activeTab === 'spectrum'
+                ? 'bg-[#2a2a2a] text-[#f4ebd0] border-l-4 border-[#ffd166] shadow-md'
+                : 'text-[#f4ebd0]/60 hover:bg-[#222] hover:text-[#f4ebd0]'
+            }`}
+          >
+            <Sparkles size={18} className="text-[#ffd166]" />
+            <span>7 Vermilion Seals</span>
           </button>
 
           <button
@@ -190,7 +207,7 @@ export const App: React.FC = () => {
             }`}
           >
             <Music size={18} className="text-[#48cae4]" />
-            <span>Web Audio Synthesizer</span>
+            <span>Sound Synthesizer</span>
           </button>
 
           <button
@@ -213,8 +230,8 @@ export const App: React.FC = () => {
               <Layers size={14} className="text-[#e0a96d]" />
               <span>Engine Status</span>
             </div>
+            <p>Phaser 3 Canvas Engines</p>
             <p>Vite 6 + React 19</p>
-            <p>Tailwind v4 (CSS-first)</p>
             <p>Capacitor 7 + Tauri v2</p>
           </div>
         </nav>
@@ -226,184 +243,186 @@ export const App: React.FC = () => {
           </section>
         ) : (
           <section className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#141414] bg-sumi-texture">
-          {activeTab === 'spectrum' && (
-            <div className="max-w-4xl mx-auto space-y-6">
-              <div className="border border-[#333] rounded-xl p-5 bg-[#1b1b1b]/80 backdrop-blur-sm shadow-xl">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-                  <div>
+            {activeTab === 'trials' && <ArcadeTrialsView />}
+
+            {activeTab === 'spectrum' && (
+              <div className="max-w-4xl mx-auto space-y-6">
+                <div className="border border-[#333] rounded-xl p-5 bg-[#1b1b1b]/80 backdrop-blur-sm shadow-xl">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div>
+                      <h2 className="text-xl font-serif font-bold text-[#f4ebd0] flex items-center gap-2">
+                        <Scroll size={20} className="text-[#b3312c]" />
+                        The Great Scroll: 7 Vermilion Seals
+                      </h2>
+                      <p className="text-xs text-[#f4ebd0]/60 mt-0.5">
+                        Defeat the regional Wardens in their sacred action trials to reclaim the stolen pigments.
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-mono px-2.5 py-1 rounded bg-[#242424] border border-[#333] text-[#e0a96d]">
+                        Seals Reclaimed: {unlockedPigments.length} / 8
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 8 Seals Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {(Object.keys(PIGMENT_REGISTRY) as Pigment[]).map((key) => {
+                      const item = PIGMENT_REGISTRY[key];
+                      const unlocked = hasPigment(key);
+
+                      return (
+                        <div
+                          key={key}
+                          onClick={() => handleSealClick(key)}
+                          className={`group relative p-4 rounded-xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
+                            unlocked
+                              ? 'bg-[#1f1f1f] shadow-lg hover:scale-[1.02]'
+                              : 'bg-[#171717] opacity-75 hover:opacity-100 hover:border-[#444]'
+                          }`}
+                          style={{
+                            borderColor: unlocked ? item.colorHex : '#2d2d2d',
+                            boxShadow: unlocked ? `0 0 20px ${item.colorHex}25` : 'none',
+                          }}
+                        >
+                          <div>
+                            <div className="flex items-center justify-between mb-3">
+                              <div
+                                className="w-10 h-10 rounded-lg flex items-center justify-center font-serif text-xl font-bold shadow-md transition-transform group-hover:scale-110"
+                                style={{
+                                  backgroundColor: unlocked ? item.colorHex : '#282828',
+                                  color: unlocked ? '#141414' : '#666',
+                                }}
+                              >
+                                {item.sealKanji}
+                              </div>
+                              <span className="text-xs">
+                                {unlocked ? (
+                                  <span className="flex items-center gap-1 text-emerald-400 font-mono">
+                                    <CheckCircle2 size={14} /> Unlocked
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1 text-[#666] font-mono">
+                                    <Lock size={14} /> Sealed
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+
+                            <h3
+                              className="font-serif font-bold text-base tracking-wide"
+                              style={{ color: unlocked ? item.colorHex : '#f4ebd0' }}
+                            >
+                              {item.name}
+                            </h3>
+                            <p className="text-xs text-[#f4ebd0]/50 font-mono mt-0.5">{item.realm}</p>
+                            <p className="text-xs text-[#f4ebd0]/40 italic mt-0.5">Warden: {item.warden}</p>
+                          </div>
+
+                          <div className="mt-4 pt-3 border-t border-[#262626]">
+                            <p className="text-[11px] text-[#f4ebd0]/70 leading-relaxed">
+                              {item.motto}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'audio' && (
+              <div className="max-w-4xl mx-auto space-y-6">
+                <div className="border border-[#333] rounded-xl p-5 bg-[#1b1b1b]/80 backdrop-blur-sm shadow-xl">
+                  <div className="mb-6">
                     <h2 className="text-xl font-serif font-bold text-[#f4ebd0] flex items-center gap-2">
-                      <Scroll size={20} className="text-[#b3312c]" />
-                      The Great Scroll: 7 Vermilion Seals
+                      <Swords size={20} className="text-[#48cae4]" />
+                      Procedural Sound Synthesizer
                     </h2>
-                    <p className="text-xs text-[#f4ebd0]/60 mt-0.5">
-                      Click any locked seal to simulate Warden victory, trigger chromatic ink bloom, and test persistence.
+                    <p className="text-xs text-[#f4ebd0]/60 mt-1">
+                      Zero-latency procedural sound synthesizer using Web Audio oscillators and biquad filters. Works 100% offline.
                     </p>
                   </div>
-                  <div className="text-right">
-                    <span className="text-xs font-mono px-2.5 py-1 rounded bg-[#242424] border border-[#333] text-[#e0a96d]">
-                      Seals Reclaimed: {unlockedPigments.length} / 8
-                    </span>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    {soundFxButtons.map((btn) => (
+                      <button
+                        key={btn.type}
+                        onClick={() => playSfx(btn.type)}
+                        className="p-4 rounded-xl bg-[#222] hover:bg-[#2d2d2d] active:scale-95 border border-[#333] hover:border-[#48cae4]/50 transition flex flex-col items-center justify-center gap-2 group"
+                      >
+                        <span className="text-2xl group-hover:scale-125 transition-transform">
+                          {btn.icon}
+                        </span>
+                        <span className="text-xs font-serif font-medium text-[#f4ebd0] group-hover:text-[#48cae4] transition-colors text-center">
+                          {btn.label}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
+              </div>
+            )}
 
-                {/* 8 Seals Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {(Object.keys(PIGMENT_REGISTRY) as Pigment[]).map((key) => {
-                    const item = PIGMENT_REGISTRY[key];
-                    const unlocked = hasPigment(key);
+            {activeTab === 'world' && (
+              <div className="max-w-4xl mx-auto space-y-6">
+                <div className="border border-[#333] rounded-xl p-5 bg-[#1b1b1b]/80 backdrop-blur-sm shadow-xl">
+                  <div className="mb-6">
+                    <h2 className="text-xl font-serif font-bold text-[#f4ebd0] flex items-center gap-2">
+                      <Compass size={20} className="text-[#2d6a4f]" />
+                      Continental Perception & Color-Gate State
+                    </h2>
+                    <p className="text-xs text-[#f4ebd0]/60 mt-1">
+                      Defeating Wardens in action trials grants perceptual abilities that turn impassable barriers into navigable pathways across previous kingdoms.
+                    </p>
+                  </div>
 
-                    return (
-                      <div
-                        key={key}
-                        onClick={() => handleSealClick(key)}
-                        className={`group relative p-4 rounded-xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
-                          unlocked
-                            ? 'bg-[#1f1f1f] shadow-lg hover:scale-[1.02]'
-                            : 'bg-[#171717] opacity-75 hover:opacity-100 hover:border-[#444]'
-                        }`}
-                        style={{
-                          borderColor: unlocked ? item.colorHex : '#2d2d2d',
-                          boxShadow: unlocked ? `0 0 20px ${item.colorHex}25` : 'none',
-                        }}
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <div
-                              className="w-10 h-10 rounded-lg flex items-center justify-center font-serif text-xl font-bold shadow-md transition-transform group-hover:scale-110"
-                              style={{
-                                backgroundColor: unlocked ? item.colorHex : '#282828',
-                                color: unlocked ? '#141414' : '#666',
-                              }}
-                            >
-                              {item.sealKanji}
+                  <div className="divide-y divide-[#262626]">
+                    {barriers.map((b) => {
+                      const accessible = canTraverse(b.id);
+                      const color = PIGMENT_REGISTRY[b.pigment].colorHex;
+
+                      return (
+                        <div key={b.id} className="py-3.5 flex items-center justify-between gap-4">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="font-serif font-semibold text-sm text-[#f4ebd0]">
+                                {b.name}
+                              </span>
+                              <span
+                                className="text-[10px] font-mono px-2 py-0.5 rounded border"
+                                style={{
+                                  borderColor: `${color}40`,
+                                  color: color,
+                                  backgroundColor: `${color}15`,
+                                }}
+                              >
+                                Requires {PIGMENT_REGISTRY[b.pigment].name}
+                              </span>
                             </div>
-                            <span className="text-xs">
-                              {unlocked ? (
-                                <span className="flex items-center gap-1 text-emerald-400 font-mono">
-                                  <CheckCircle2 size={14} /> Unlocked
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-1 text-[#666] font-mono">
-                                  <Lock size={14} /> Sealed
-                                </span>
-                              )}
-                            </span>
+                            <p className="text-xs text-[#f4ebd0]/60">{b.description}</p>
                           </div>
 
-                          <h3
-                            className="font-serif font-bold text-base tracking-wide"
-                            style={{ color: unlocked ? item.colorHex : '#f4ebd0' }}
-                          >
-                            {item.name}
-                          </h3>
-                          <p className="text-xs text-[#f4ebd0]/50 font-mono mt-0.5">{item.realm}</p>
-                          <p className="text-xs text-[#f4ebd0]/40 italic mt-0.5">Warden: {item.warden}</p>
-                        </div>
-
-                        <div className="mt-4 pt-3 border-t border-[#262626]">
-                          <p className="text-[11px] text-[#f4ebd0]/70 leading-relaxed">
-                            {item.motto}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'audio' && (
-            <div className="max-w-4xl mx-auto space-y-6">
-              <div className="border border-[#333] rounded-xl p-5 bg-[#1b1b1b]/80 backdrop-blur-sm shadow-xl">
-                <div className="mb-6">
-                  <h2 className="text-xl font-serif font-bold text-[#f4ebd0] flex items-center gap-2">
-                    <Swords size={20} className="text-[#48cae4]" />
-                    Procedural Web Audio API Synthesizer
-                  </h2>
-                  <p className="text-xs text-[#f4ebd0]/60 mt-1">
-                    Zero-latency, zero-download procedural audio engine using oscillators, noise buffers, and biquad filters. Works 100% offline.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                  {soundFxButtons.map((btn) => (
-                    <button
-                      key={btn.type}
-                      onClick={() => playSfx(btn.type)}
-                      className="p-4 rounded-xl bg-[#222] hover:bg-[#2d2d2d] active:scale-95 border border-[#333] hover:border-[#48cae4]/50 transition flex flex-col items-center justify-center gap-2 group"
-                    >
-                      <span className="text-2xl group-hover:scale-125 transition-transform">
-                        {btn.icon}
-                      </span>
-                      <span className="text-xs font-serif font-medium text-[#f4ebd0] group-hover:text-[#48cae4] transition-colors text-center">
-                        {btn.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'world' && (
-            <div className="max-w-4xl mx-auto space-y-6">
-              <div className="border border-[#333] rounded-xl p-5 bg-[#1b1b1b]/80 backdrop-blur-sm shadow-xl">
-                <div className="mb-6">
-                  <h2 className="text-xl font-serif font-bold text-[#f4ebd0] flex items-center gap-2">
-                    <Compass size={20} className="text-[#2d6a4f]" />
-                    Environmental Perception & Color-Gate State
-                  </h2>
-                  <p className="text-xs text-[#f4ebd0]/60 mt-1">
-                    Defeating Wardens grants perceptual abilities that transform invisible or impassable barriers into navigable pathways across previous kingdoms.
-                  </p>
-                </div>
-
-                <div className="divide-y divide-[#262626]">
-                  {barriers.map((b) => {
-                    const accessible = canTraverse(b.id);
-                    const color = PIGMENT_REGISTRY[b.pigment].colorHex;
-
-                    return (
-                      <div key={b.id} className="py-3.5 flex items-center justify-between gap-4">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-serif font-semibold text-sm text-[#f4ebd0]">
-                              {b.name}
-                            </span>
-                            <span
-                              className="text-[10px] font-mono px-2 py-0.5 rounded border"
-                              style={{
-                                borderColor: `${color}40`,
-                                color: color,
-                                backgroundColor: `${color}15`,
-                              }}
-                            >
-                              Requires {PIGMENT_REGISTRY[b.pigment].name}
-                            </span>
+                          <div>
+                            {accessible ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-mono text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded border border-emerald-800/50">
+                                <Unlock size={12} /> Navigable
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs font-mono text-zinc-500 bg-zinc-900 px-2.5 py-1 rounded border border-zinc-800">
+                                <Lock size={12} /> Impassable
+                              </span>
+                            )}
                           </div>
-                          <p className="text-xs text-[#f4ebd0]/60">{b.description}</p>
                         </div>
-
-                        <div>
-                          {accessible ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-mono text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded border border-emerald-800/50">
-                              <Unlock size={12} /> Navigable
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-mono text-zinc-500 bg-zinc-900 px-2.5 py-1 rounded border border-zinc-800">
-                              <Lock size={12} /> Impassable
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </section>
+            )}
+          </section>
         )}
       </main>
     </div>
