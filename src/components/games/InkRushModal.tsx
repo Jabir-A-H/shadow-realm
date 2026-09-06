@@ -31,6 +31,20 @@ export const InkRushModal: React.FC<InkRushModalProps> = ({
 
   const config = ACTION_GAMES_METADATA['ink-rush'];
 
+  const ensureFocus = useCallback(() => {
+    if (containerRef.current) {
+      const canvas = containerRef.current.querySelector('canvas');
+      if (canvas) {
+        canvas.tabIndex = 0;
+        canvas.style.outline = 'none';
+        if (document.activeElement && document.activeElement !== canvas) {
+          (document.activeElement as HTMLElement)?.blur();
+        }
+        canvas.focus();
+      }
+    }
+  }, []);
+
   const initGame = useCallback(() => {
     if (!containerRef.current) return;
     if (gameRef.current) {
@@ -64,6 +78,9 @@ export const InkRushModal: React.FC<InkRushModalProps> = ({
         default: 'arcade',
         arcade: { gravity: { x: 0, y: 0 }, debug: false },
       },
+      input: {
+        keyboard: true,
+      },
       render: { antialias: true, roundPixels: true },
       scale: {
         mode: Phaser.Scale.RESIZE,
@@ -73,11 +90,26 @@ export const InkRushModal: React.FC<InkRushModalProps> = ({
     };
 
     gameRef.current = new Phaser.Game(gameConfig);
-  }, [difficulty, playSfx]);
+
+    requestAnimationFrame(ensureFocus);
+    setTimeout(ensureFocus, 60);
+    setTimeout(ensureFocus, 200);
+  }, [difficulty, playSfx, ensureFocus]);
 
   useEffect(() => {
     if (isOpen) {
       initGame();
+      const focusTimer = setTimeout(() => {
+        ensureFocus();
+      }, 150);
+      return () => {
+        clearTimeout(focusTimer);
+        if (gameRef.current) {
+          gameRef.current.destroy(true);
+          gameRef.current = null;
+          sceneRef.current = null;
+        }
+      };
     }
     return () => {
       if (gameRef.current) {
@@ -99,6 +131,10 @@ export const InkRushModal: React.FC<InkRushModalProps> = ({
     onClose();
   };
 
+  const handleContainerFocus = () => {
+    ensureFocus();
+  };
+
   return (
     <MinigameContainer
       config={config}
@@ -109,7 +145,13 @@ export const InkRushModal: React.FC<InkRushModalProps> = ({
       onClaimVictory={handleClaim}
       wardenColorHex={wardenColorHex}
     >
-      <div ref={containerRef} className="w-full h-full" />
+      <div
+        ref={containerRef}
+        tabIndex={0}
+        onClick={handleContainerFocus}
+        onPointerDown={handleContainerFocus}
+        className="w-full h-full outline-none focus:outline-none"
+      />
 
       {/* Touch Buttons */}
       <div className="absolute bottom-4 inset-x-4 flex items-center justify-between pointer-events-none z-30">
@@ -136,17 +178,19 @@ export const InkRushModal: React.FC<InkRushModalProps> = ({
           <button
             onClick={() => sceneRef.current?.triggerJump()}
             className="px-4 h-12 rounded-xl bg-[#1a2f3f]/90 active:bg-[#27455c] border border-[#0077b6] text-[#90e0ef] flex items-center gap-1 font-mono text-xs font-bold shadow-lg"
+            title="High Jump [W / ↑ / Space]"
           >
             <ArrowUp size={16} />
-            <span>Jump [Space]</span>
+            <span>Jump [W / Space]</span>
           </button>
 
           <button
             onClick={() => sceneRef.current?.triggerSlide()}
             className="px-4 h-12 rounded-xl bg-[#2b2416]/90 active:bg-[#423722] border border-[#e0a96d] text-[#f4ebd0] flex items-center gap-1 font-mono text-xs font-bold shadow-lg"
+            title="Slide [S / ↓]"
           >
             <ArrowDown size={16} />
-            <span>Slide [D]</span>
+            <span>Slide [S]</span>
           </button>
         </div>
       </div>

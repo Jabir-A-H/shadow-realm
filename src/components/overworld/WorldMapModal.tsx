@@ -152,17 +152,24 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         Shrine: ({reg.wardenShrine.x}, {reg.wardenShrine.y})
                       </span>
 
-                      <button
-                        onClick={() => {
-                          playSfx('wind');
-                          onFastTravel(reg.wardenShrine.x, reg.wardenShrine.y + 40);
-                          onClose();
-                        }}
-                        className="px-3 py-1.5 rounded-lg text-xs font-serif font-bold transition flex items-center gap-1.5 bg-[#252525] hover:bg-[#323232] text-[#f4ebd0] border border-[#3a3a3a]"
-                      >
-                        <Navigation size={12} className="text-[#48cae4]" />
-                        <span>Travel to Shrine</span>
-                      </button>
+                      {isCurrent || isUnlocked || id === 'river-crossings' ? (
+                        <button
+                          onClick={() => {
+                            playSfx('wind');
+                            onFastTravel(reg.wardenShrine.x, reg.wardenShrine.y + 40);
+                            onClose();
+                          }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-serif font-bold transition flex items-center gap-1.5 bg-[#252525] hover:bg-[#323232] text-[#f4ebd0] border border-[#3a3a3a]"
+                        >
+                          <Navigation size={12} className="text-[#48cae4]" />
+                          <span>{isCurrent ? 'Current Realm' : 'Travel to Shrine'}</span>
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-500 px-2.5 py-1 rounded bg-[#1c1c1c] border border-[#2e2e2e]">
+                          <Lock size={12} />
+                          <span>Reclaim Seal to Travel</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

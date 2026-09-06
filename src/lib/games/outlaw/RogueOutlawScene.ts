@@ -49,6 +49,15 @@ export class RogueOutlawScene extends Phaser.Scene {
   private keyD!: Phaser.Input.Keyboard.Key;
   private keySpace!: Phaser.Input.Keyboard.Key;
   private keyShift!: Phaser.Input.Keyboard.Key;
+  private keyJ!: Phaser.Input.Keyboard.Key;
+  private keyEnter!: Phaser.Input.Keyboard.Key;
+
+  // DOM keyboard tracking ensuring zero dropped inputs
+  private rawKeys: Record<string, boolean> = {};
+  private rawJustDown: Record<string, boolean> = {};
+  private onKeyDownHandler!: (e: KeyboardEvent) => void;
+  private onKeyUpHandler!: (e: KeyboardEvent) => void;
+  private onBlurHandler!: () => void;
 
   // Virtual inputs for touch
   private virtualMoveVector: { x: number; y: number } = { x: 0, y: 0 };
@@ -158,12 +167,74 @@ export class RogueOutlawScene extends Phaser.Scene {
       this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
       this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
       this.keyShift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
+      this.keyJ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.J);
+      this.keyEnter = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
     }
 
-    // Pointer fire
+    // Direct DOM keyboard tracking ensuring zero dropped inputs across all browsers
+    this.rawKeys = {};
+    this.rawJustDown = {};
+    this.onKeyDownHandler = (e: KeyboardEvent) => {
+      const code = e.code || '';
+      const keyLower = e.key ? e.key.toLowerCase() : '';
+      if (code && !this.rawKeys[code] && !(keyLower && this.rawKeys[keyLower])) {
+        this.rawJustDown[code] = true;
+        if (keyLower) this.rawJustDown[keyLower] = true;
+      }
+      if (code) this.rawKeys[code] = true;
+      if (keyLower) this.rawKeys[keyLower] = true;
+
+      if (
+        !e.altKey && !e.ctrlKey && !e.metaKey &&
+        ['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(code)
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    this.onKeyUpHandler = (e: KeyboardEvent) => {
+      const code = e.code || '';
+      const keyLower = e.key ? e.key.toLowerCase() : '';
+      if (code) {
+        this.rawKeys[code] = false;
+        this.rawJustDown[code] = false;
+      }
+      if (keyLower) {
+        this.rawKeys[keyLower] = false;
+        this.rawJustDown[keyLower] = false;
+      }
+    };
+
+    this.onBlurHandler = () => {
+      this.rawKeys = {};
+      this.rawJustDown = {};
+    };
+
+    window.addEventListener('keydown', this.onKeyDownHandler, false);
+    window.addEventListener('keyup', this.onKeyUpHandler, false);
+    window.addEventListener('blur', this.onBlurHandler);
+
+    const cleanUpListeners = () => {
+      window.removeEventListener('keydown', this.onKeyDownHandler, false);
+      window.removeEventListener('keyup', this.onKeyUpHandler, false);
+      window.removeEventListener('blur', this.onBlurHandler);
+    };
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanUpListeners);
+    this.events.once(Phaser.Scenes.Events.DESTROY, cleanUpListeners);
+
+    // Multi-touch pointers for simultaneous movement & shooting
+    this.input.addPointer(2);
+
+    // Pointer fire (mouse click or screen touch)
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.leftButtonDown()) {
-        this.fireTowards(pointer.x, pointer.y);
+      this.fireTowards(pointer.x, pointer.y);
+    });
+
+    // Aim player towards mouse cursor on desktop
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (!this.isRolling && !pointer.wasTouch && this.player && this.player.active) {
+        const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, pointer.x, pointer.y);
+        this.player.setRotation(angle);
       }
     });
 
@@ -204,6 +275,26 @@ export class RogueOutlawScene extends Phaser.Scene {
     this.executeCombatRoll();
   }
 
+  public triggerFire() {
+    if (this.isGameOver) return;
+    const angle = this.player.rotation;
+    const targetX = this.player.x + Math.cos(angle) * 200;
+    const targetY = this.player.y + Math.sin(angle) * 200;
+    this.fireTowards(targetX, targetY);
+  }
+
+  private consumeJustDown(code: string, keyName?: string): boolean {
+    if (this.rawJustDown[code]) {
+      this.rawJustDown[code] = false;
+      return true;
+    }
+    if (keyName && this.rawJustDown[keyName.toLowerCase()]) {
+      this.rawJustDown[keyName.toLowerCase()] = false;
+      return true;
+    }
+    return false;
+  }
+
   // ==========================================
   // MOVEMENT & COMBAT ROLL
   // ==========================================
@@ -218,13 +309,44 @@ export class RogueOutlawScene extends Phaser.Scene {
     let vx = 0;
     let vy = 0;
 
-    if (this.cursors) {
-      if (this.cursors.left.isDown || this.keyA.isDown) vx -= 1;
-      if (this.cursors.right.isDown || this.keyD.isDown) vx += 1;
-      if (this.cursors.up.isDown || this.keyW.isDown) vy -= 1;
-      if (this.cursors.down.isDown || this.keyS.isDown) vy += 1;
-    }
+    const moveLeft =
+      Boolean(this.rawKeys['KeyA']) ||
+      Boolean(this.rawKeys['a']) ||
+      Boolean(this.rawKeys['ArrowLeft']) ||
+      Boolean(this.rawKeys['arrowleft']) ||
+      Boolean(this.cursors?.left?.isDown) ||
+      Boolean(this.keyA?.isDown);
 
+    const moveRight =
+      Boolean(this.rawKeys['KeyD']) ||
+      Boolean(this.rawKeys['d']) ||
+      Boolean(this.rawKeys['ArrowRight']) ||
+      Boolean(this.rawKeys['arrowright']) ||
+      Boolean(this.cursors?.right?.isDown) ||
+      Boolean(this.keyD?.isDown);
+
+    const moveUp =
+      Boolean(this.rawKeys['KeyW']) ||
+      Boolean(this.rawKeys['w']) ||
+      Boolean(this.rawKeys['ArrowUp']) ||
+      Boolean(this.rawKeys['arrowup']) ||
+      Boolean(this.cursors?.up?.isDown) ||
+      Boolean(this.keyW?.isDown);
+
+    const moveDown =
+      Boolean(this.rawKeys['KeyS']) ||
+      Boolean(this.rawKeys['s']) ||
+      Boolean(this.rawKeys['ArrowDown']) ||
+      Boolean(this.rawKeys['arrowdown']) ||
+      Boolean(this.cursors?.down?.isDown) ||
+      Boolean(this.keyS?.isDown);
+
+    if (moveLeft) vx -= 1;
+    if (moveRight) vx += 1;
+    if (moveUp) vy -= 1;
+    if (moveDown) vy += 1;
+
+    // Touch D-pad virtual vector overrides if non-zero
     if (this.virtualMoveVector.x !== 0 || this.virtualMoveVector.y !== 0) {
       vx = this.virtualMoveVector.x;
       vy = this.virtualMoveVector.y;
@@ -236,15 +358,38 @@ export class RogueOutlawScene extends Phaser.Scene {
       vy /= len;
     }
 
+    if (vx !== 0 || vy !== 0) {
+      if (!this.input.activePointer.isDown || this.input.activePointer.wasTouch) {
+        this.player.setRotation(Math.atan2(vy, vx));
+      }
+    }
+
     this.player.setVelocity(vx * speed, vy * speed);
 
     // Roll trigger
-    if (
-      (Phaser.Input.Keyboard.JustDown(this.keySpace) ||
-        Phaser.Input.Keyboard.JustDown(this.keyShift)) &&
-      this.rollCooldown <= 0
-    ) {
+    const rollTriggered =
+      this.consumeJustDown('Space', ' ') ||
+      this.consumeJustDown('ShiftLeft', 'shift') ||
+      this.consumeJustDown('ShiftRight', 'shift') ||
+      Boolean(this.keySpace && Phaser.Input.Keyboard.JustDown(this.keySpace)) ||
+      Boolean(this.keyShift && Phaser.Input.Keyboard.JustDown(this.keyShift)) ||
+      Boolean(this.cursors?.space && Phaser.Input.Keyboard.JustDown(this.cursors.space)) ||
+      Boolean(this.cursors?.shift && Phaser.Input.Keyboard.JustDown(this.cursors.shift));
+
+    if (rollTriggered && this.rollCooldown <= 0) {
       this.executeCombatRoll();
+    }
+
+    // Keyboard fire trigger [J], [F], or [Enter]
+    const fireTriggered =
+      this.consumeJustDown('KeyJ', 'j') ||
+      this.consumeJustDown('KeyF', 'f') ||
+      this.consumeJustDown('Enter') ||
+      Boolean(this.keyJ && Phaser.Input.Keyboard.JustDown(this.keyJ)) ||
+      Boolean(this.keyEnter && Phaser.Input.Keyboard.JustDown(this.keyEnter));
+
+    if (fireTriggered) {
+      this.triggerFire();
     }
   }
 
@@ -271,7 +416,7 @@ export class RogueOutlawScene extends Phaser.Scene {
   private handleMouseAim() {
     if (this.isRolling) return;
     const pointer = this.input.activePointer;
-    if (pointer && pointer.isDown) {
+    if (pointer && pointer.isDown && !pointer.wasTouch) {
       const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, pointer.x, pointer.y);
       this.player.setRotation(angle);
       this.fireTowards(pointer.x, pointer.y);
@@ -526,8 +671,16 @@ export class RogueOutlawScene extends Phaser.Scene {
 
   private handlePlayerHitByEnemy(
     _playerObj: Phaser.Types.Physics.Arcade.GameObjectWithBody,
-    _enemyObj: Phaser.Types.Physics.Arcade.GameObjectWithBody
+    enemyObj: Phaser.Types.Physics.Arcade.GameObjectWithBody
   ) {
+    if (this.isInvulnerable || this.isGameOver) return;
+
+    const enemy = enemyObj as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+    if (enemy && enemy.body) {
+      const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+      this.player.setVelocity(Math.cos(angle) * 320, Math.sin(angle) * 320);
+      enemy.setVelocity(-Math.cos(angle) * 140, -Math.sin(angle) * 140);
+    }
     this.damagePlayer();
   }
 

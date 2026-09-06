@@ -55,9 +55,12 @@ export const PhaserOverworld: React.FC = () => {
   const [currentRegionId, setCurrentRegionId] = useState<string>(
     saveData.playerCoords.currentRegion || 'river-crossings'
   );
+  const currentRegionRef = useRef<string>(
+    saveData.playerCoords.currentRegion || 'river-crossings'
+  );
   const [currentCoords, setCurrentCoords] = useState<{ x: number; y: number }>({
-    x: saveData.playerCoords.x || 640,
-    y: saveData.playerCoords.y || 800,
+    x: saveData.playerCoords.x || 1600,
+    y: saveData.playerCoords.y || 1000,
   });
 
   // Modals & Notifications
@@ -82,6 +85,7 @@ export const PhaserOverworld: React.FC = () => {
 
     const callbacks: OverworldCallbacks = {
       onRegionChange: (regionId, regionName) => {
+        currentRegionRef.current = regionId;
         setCurrentRegionId(regionId);
         const meta = CONTINENTAL_REGIONS[regionId];
         const motto = meta ? PIGMENT_REGISTRY[meta.pigment].motto : '';
@@ -95,11 +99,13 @@ export const PhaserOverworld: React.FC = () => {
 
       onPlayerMove: (coords) => {
         setCurrentCoords({ x: coords.x, y: coords.y });
+        const regId = coords.currentRegion || currentRegionRef.current || 'river-crossings';
+        currentRegionRef.current = regId;
         updateCoords({
           x: coords.x,
           y: coords.y,
           facing: coords.facing,
-          currentRegion: CONTINENTAL_REGIONS[currentRegionId]?.name || 'The River Crossings',
+          currentRegion: regId,
         });
       },
 
@@ -142,6 +148,17 @@ export const PhaserOverworld: React.FC = () => {
     }
   }, [unlockedPigments]);
 
+  // Pause overworld & release keyboard captures when any modal or cutscene is active
+  useEffect(() => {
+    if (!gameHandleRef.current) return;
+    const isModalActive = Boolean(activeTrialGame || activeBossCutscene || isMapOpen || encounterWardenId);
+    if (isModalActive) {
+      gameHandleRef.current.pauseOverworld();
+    } else {
+      gameHandleRef.current.resumeOverworld();
+    }
+  }, [activeTrialGame, activeBossCutscene, isMapOpen, encounterWardenId]);
+
   // 3. Global Keyboard Shortcuts (M for Map, Esc for close)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -179,11 +196,14 @@ export const PhaserOverworld: React.FC = () => {
     setActiveBossCutscene(trialId);
   };
 
-  const handleStartMinigame = () => {
-    const trial = activeBossCutscene;
-    setActiveBossCutscene(null);
-    setActiveTrialGame(trial);
-  };
+  const handleStartMinigame = useCallback(() => {
+    setActiveBossCutscene((current) => {
+      if (current) {
+        setActiveTrialGame(current);
+      }
+      return null;
+    });
+  }, []);
 
   const handleTrialVictory = (score: number) => {
     if (!challengingWardenRegion || !activeTrialGame) return;

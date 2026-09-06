@@ -51,7 +51,7 @@ export const ACTION_GAMES_METADATA: Record<ActionGameId, ActionGameConfig> = {
     pigment: 'frost-cyan',
     description: 'A frame-tight spacing duel. Walk in and out of range, block incoming strikes, poke fast, and punish opponent whiffs. First to 3 clean unblocked strikes wins.',
     controlsGuide: {
-      keyboard: ['[A] / [D] or [←] / [→]: Step Forward / Back', '[S] or [↓] or Hold Away: Guard / Block', '[J] or [Z]: Quick Poke (Fast thrust)', '[K] or [X]: Heavy Strike (Powerful reach)'],
+      keyboard: ['[A] / [D] or [←] / [→]: Step Forward / Back', '[Space] / [S] / [↓]: Guard / Block', '[J] or [Z]: Quick Poke (Fast thrust)', '[K] or [X]: Heavy Strike (Powerful reach)'],
       touch: ['Virtual D-Pad Left/Right: Step', 'Guard Button: Hold to block', 'Poke Button: Light jab', 'Strike Button: Heavy slash'],
     },
   },
@@ -77,7 +77,7 @@ export const ACTION_GAMES_METADATA: Record<ActionGameId, ActionGameConfig> = {
     pigment: 'blood-vermilion',
     description: 'Survive relentless waves of desert bandits and marksmen in the red canyon ruins. Roll through enemy fire and take down the Viper Boss.',
     controlsGuide: {
-      keyboard: ['[W][A][S][D]: 360° Movement', 'Mouse Aim + Left Click: Aim & Shoot', '[Space] or [Shift]: Tactical Combat Roll (Invulnerable)'],
+      keyboard: ['[W][A][S][D] / Arrow Keys: 8-Way Movement', 'Mouse Aim + Click / [J] / [F] / [Enter]: Shoot', '[Space] / [Shift]: Combat Roll (Invulnerable)'],
       touch: ['Left Stick: Move', 'Right Stick / Tap: Aim & Shoot', 'Roll Button: Dodge roll'],
     },
   },

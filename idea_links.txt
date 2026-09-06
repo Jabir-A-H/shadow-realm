@@ -7,10 +7,18 @@
 "E:\Jabir\DL\Donknow\Games\ShogunShowdown_Win.zip"
 "E:\Jabir\DL\Donknow\Games\mummymazesetup.exe"
 "E:\Jabir\DL\Donknow\Games\Ultimate Retro PC Mega Pack.7z"
-"F:\WebDev\swf\pinchhitter2.swf"
+"F:\WebDev\swf\pinchhitter2.swf" (a baseball flash game)
 "F:\WebDev\Godot\gamepacks"
 "F:\WebDev\Godot\nightblade"
 "F:\WebDev\Godot\reaction-time"
 "F:\WebDev\Godot\rogue-outlaw"
 "F:\WebDev\Godot\soulbinders"
+pokemon
+nexomon
+evocreo
+dark souls
+swords and souls flash game and Swords & Souls: Neverseen
+shadow fight 2
+swordigo
+kingdoms and lords
 

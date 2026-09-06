@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Swords, Shield, Zap } from 'lucide-react';
 import { useAudio } from '../../contexts/AudioContext';
@@ -18,6 +18,8 @@ export const BossIntroCutscene: React.FC<BossIntroCutsceneProps> = ({
   wardenColorHex,
 }) => {
   const { playSfx } = useAudio();
+  const onStartGameRef = useRef(onStartGame);
+  onStartGameRef.current = onStartGame;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -29,14 +31,14 @@ export const BossIntroCutscene: React.FC<BossIntroCutsceneProps> = ({
     }, 600);
 
     const timer2 = setTimeout(() => {
-      onStartGame();
+      onStartGameRef.current();
     }, 2800);
 
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
-  }, [isOpen, onStartGame, playSfx]);
+  }, [isOpen, playSfx]);
 
   if (!isOpen) return null;
 

@@ -15,6 +15,10 @@ export class InkRushScene extends Phaser.Scene {
   private player!: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   private currentLane = 1; // 0: Top, 1: Middle, 2: Bottom
   private laneYPositions: number[] = [];
+  public currentBaseY = 0;
+  public jumpOffsetY = 0;
+  private jumpTween: Phaser.Tweens.Tween | null = null;
+  private laneTween: Phaser.Tweens.Tween | null = null;
   private isJumping = false;
   private isSliding = false;
   private slideTimer = 0;
@@ -78,9 +82,13 @@ export class InkRushScene extends Phaser.Scene {
     this.isSliding = false;
     this.isGameOver = false;
     this.currentSpeed = 320;
+    this.jumpTween = null;
+    this.laneTween = null;
 
     // 1. Calculate 3 lane Y positions
     this.laneYPositions = [height * 0.38, height * 0.52, height * 0.66];
+    this.currentBaseY = this.laneYPositions[this.currentLane];
+    this.jumpOffsetY = 0;
 
     // 2. Draw Riverbed & Rapids
     this.buildRiverbed(width, height);
@@ -134,6 +142,7 @@ export class InkRushScene extends Phaser.Scene {
     if (this.isGameOver) return;
 
     this.handleKeyboardInputs();
+    this.player.y = this.currentBaseY + this.jumpOffsetY;
     this.updateRunProgress(delta);
     this.updateObstacleSpawns(time);
     this.updateRiverRipples();
@@ -174,16 +183,25 @@ export class InkRushScene extends Phaser.Scene {
     this.callbacks.onPlaySfx?.('wind');
     this.player.setTexture('rush-courier-jump');
 
-    const baseLaneY = this.laneYPositions[this.currentLane];
+    if (this.jumpTween) {
+      this.jumpTween.stop();
+      this.jumpTween = null;
+    }
 
-    this.tweens.add({
-      targets: this.player,
-      y: baseLaneY - 60,
-      duration: 320,
+    this.jumpTween = this.tweens.add({
+      targets: this,
+      jumpOffsetY: -65,
+      duration: 280,
       yoyo: true,
       ease: 'Quad.easeOut',
+      onUpdate: () => {
+        this.player.y = this.currentBaseY + this.jumpOffsetY;
+      },
       onComplete: () => {
+        this.jumpOffsetY = 0;
         this.isJumping = false;
+        this.player.y = this.currentBaseY;
+        this.jumpTween = null;
         if (!this.isSliding) {
           this.player.setTexture('rush-courier-run');
         }
@@ -203,27 +221,34 @@ export class InkRushScene extends Phaser.Scene {
   // INPUT HANDLING
   // ==========================================
   private handleKeyboardInputs() {
+    // A or Left: Lane Up
     if (
-      Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
       Phaser.Input.Keyboard.JustDown(this.cursors.left) ||
-      Phaser.Input.Keyboard.JustDown(this.keyW) ||
       Phaser.Input.Keyboard.JustDown(this.keyA)
     ) {
       this.switchLaneUp();
-    } else if (
-      Phaser.Input.Keyboard.JustDown(this.cursors.down) ||
-      Phaser.Input.Keyboard.JustDown(this.keyS)
+    }
+    // D or Right: Lane Down
+    else if (
+      Phaser.Input.Keyboard.JustDown(this.cursors.right) ||
+      Phaser.Input.Keyboard.JustDown(this.keyD)
     ) {
       this.switchLaneDown();
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
+    // W, Up, or Space: Jump
+    if (
+      Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
+      Phaser.Input.Keyboard.JustDown(this.keyW) ||
+      Phaser.Input.Keyboard.JustDown(this.keySpace)
+    ) {
       this.triggerJump();
     }
 
+    // S or Down: Slide
     if (
-      Phaser.Input.Keyboard.JustDown(this.cursors.right) ||
-      Phaser.Input.Keyboard.JustDown(this.keyD)
+      Phaser.Input.Keyboard.JustDown(this.cursors.down) ||
+      Phaser.Input.Keyboard.JustDown(this.keyS)
     ) {
       this.triggerSlide();
     }
@@ -232,11 +257,25 @@ export class InkRushScene extends Phaser.Scene {
   private animateLaneChange() {
     this.callbacks.onPlaySfx?.('parchment');
     const targetY = this.laneYPositions[this.currentLane];
-    this.tweens.add({
-      targets: this.player,
-      y: targetY,
+
+    if (this.laneTween) {
+      this.laneTween.stop();
+      this.laneTween = null;
+    }
+
+    this.laneTween = this.tweens.add({
+      targets: this,
+      currentBaseY: targetY,
       duration: 160,
       ease: 'Quad.easeOut',
+      onUpdate: () => {
+        this.player.y = this.currentBaseY + this.jumpOffsetY;
+      },
+      onComplete: () => {
+        this.currentBaseY = targetY;
+        this.player.y = this.currentBaseY + this.jumpOffsetY;
+        this.laneTween = null;
+      },
     });
   }
 
@@ -321,6 +360,13 @@ export class InkRushScene extends Phaser.Scene {
     if (this.isInvulnerable || this.isGameOver) return;
 
     const obstacle = obstacleObj as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+    const obstacleLane = obstacle.getData('lane') as number;
+
+    // Ignore collisions from obstacles in other lanes (prevents vertical jump bleed)
+    if (obstacleLane !== undefined && obstacleLane !== this.currentLane) {
+      return;
+    }
+
     const type = obstacle.getData('type') as string;
 
     // If jumping over a rock, dodge success!

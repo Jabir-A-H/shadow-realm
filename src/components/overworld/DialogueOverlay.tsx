@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Swords, Scroll, X, Sparkles, CheckCircle2 } from 'lucide-react';
 import { CONTINENTAL_REGIONS } from '../../lib/engine/tilemapData';
@@ -71,6 +71,25 @@ export const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
   const pigmentData = PIGMENT_REGISTRY[pigment];
   const banter = WARDEN_LORE_BANTER[regionId] || WARDEN_LORE_BANTER['river-crossings'];
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        playSfx('click');
+        onClose();
+      } else if (e.key === 'Enter' || e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        playSfx('clash');
+        setDialogueState('challenge');
+        onChallenge(pigment);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, pigment, onChallenge, onClose, playSfx]);
+
   if (!isOpen) return null;
 
   return (
@@ -101,7 +120,7 @@ export const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
             <X size={18} />
           </button>
 
-          {/* Left Column: Silhouette Portrait & Kanji Seal */}
+          {/* Left Column: Silhouette Portrait & Seal Rune */}
           <div className="flex flex-col items-center justify-center shrink-0 md:w-48 text-center space-y-3">
             <div
               className="relative w-32 h-40 rounded-xl bg-[#121212] border-2 flex items-center justify-center overflow-hidden shadow-inner"
@@ -119,7 +138,7 @@ export const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
                 />
               </div>
 
-              {/* Japanese Seal Kanji Badge */}
+              {/* Continental Seal Rune Badge */}
               <div
                 className="absolute bottom-2 right-2 w-9 h-9 rounded-lg flex items-center justify-center font-serif text-lg font-bold shadow-lg"
                 style={{

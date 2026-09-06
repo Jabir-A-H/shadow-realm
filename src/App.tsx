@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import confetti from 'canvas-confetti';
 import {
   Volume2,
   VolumeX,
@@ -22,6 +21,7 @@ import { useSaveGame } from './contexts/SaveGameContext';
 import { useAudio, ProceduralSfxType } from './contexts/AudioContext';
 import { PhaserOverworld } from './components/overworld/PhaserOverworld';
 import { ArcadeTrialsView } from './components/games/ArcadeTrialsView';
+import { CONTINENTAL_REGIONS } from './lib/engine/tilemapData';
 
 export const App: React.FC = () => {
   const {
@@ -29,39 +29,17 @@ export const App: React.FC = () => {
     chapter,
     chapterTitle,
     hasPigment,
-    unlockPigment,
     resetSpectrum,
     canTraverse,
   } = useSpectrum();
 
-  const { saveData, stampSeal, resetGame } = useSaveGame();
+  const { saveData, resetGame } = useSaveGame();
   const { isMuted, toggleMute, playSfx } = useAudio();
 
   const [activeTab, setActiveTab] = useState<'overworld' | 'trials' | 'spectrum' | 'audio' | 'world'>('overworld');
 
-  const handleSealClick = (pigment: Pigment) => {
-    if (hasPigment(pigment)) {
-      playSfx('clash');
-      return;
-    }
-
-    // Unlock and play seal stamp sound
-    playSfx('seal-stamp');
-    unlockPigment(pigment);
-    stampSeal(pigment, 100);
-
-    // Fire themed confetti burst
-    const hex = PIGMENT_REGISTRY[pigment].colorHex;
-    try {
-      confetti({
-        particleCount: 50,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: [hex, '#f4ebd0', '#141414'],
-      });
-    } catch {
-      // Confetti fallback
-    }
+  const handleSealClick = (_pigment: Pigment) => {
+    playSfx('parchment');
   };
 
   const handleResetAll = () => {
@@ -122,7 +100,7 @@ export const App: React.FC = () => {
         <div className="flex items-center gap-2 md:gap-4">
           <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-[#f4ebd0]/70 bg-[#242424] px-3 py-1.5 rounded-md border border-[#333]">
             <MapPin size={13} className="text-[#0077b6]" />
-            <span>{saveData.playerCoords.currentRegion}</span>
+            <span>{CONTINENTAL_REGIONS[saveData.playerCoords.currentRegion]?.name || saveData.playerCoords.currentRegion}</span>
           </div>
 
           <button

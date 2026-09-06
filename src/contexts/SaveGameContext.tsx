@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { Pigment } from './SpectrumContext';
 
 export interface VermilionSeal {
@@ -47,15 +47,26 @@ const DEFAULT_SEALS: Record<Pigment, VermilionSeal> = {
   'full-spectrum': { pigment: 'full-spectrum', stamped: false },
 };
 
+const REGION_NAME_TO_ID: Record<string, string> = {
+  'The River Crossings': 'river-crossings',
+  'The Frozen Reach': 'frozen-reach',
+  'The Drowned Isles': 'drowned-isles',
+  'The High Vale': 'high-vale',
+  'The Gilded Vault': 'gilded-vault',
+  'The Verdant Reach': 'verdant-reach',
+  'The Scorched Dunes': 'scorched-dunes',
+  'The Obsidian Citadel': 'obsidian-citadel',
+};
+
 const DEFAULT_SAVE: SaveGameData = {
   version: 1,
   playerName: 'Shadow Wanderer',
   callsign: 'RONIN-01',
   playerCoords: {
-    x: 640,
-    y: 800,
+    x: 1600,
+    y: 1000,
     facing: 'down',
-    currentRegion: 'The River Crossings',
+    currentRegion: 'river-crossings',
   },
   seals: DEFAULT_SEALS,
   minigames: {},
@@ -86,6 +97,22 @@ export const SaveGameProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
+        if (parsed.playerCoords) {
+          if (REGION_NAME_TO_ID[parsed.playerCoords.currentRegion]) {
+            parsed.playerCoords.currentRegion = REGION_NAME_TO_ID[parsed.playerCoords.currentRegion];
+          }
+          if (
+            (parsed.playerCoords.x === 640 && parsed.playerCoords.y === 800) ||
+            parsed.playerCoords.x < 100 ||
+            parsed.playerCoords.x > 3100 ||
+            parsed.playerCoords.y < 100 ||
+            parsed.playerCoords.y > 2300
+          ) {
+            parsed.playerCoords.x = 1600;
+            parsed.playerCoords.y = 1000;
+            parsed.playerCoords.currentRegion = 'river-crossings';
+          }
+        }
         return { ...DEFAULT_SAVE, ...parsed };
       }
     } catch (e) {
@@ -114,15 +141,15 @@ export const SaveGameProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return () => clearInterval(timer);
   }, []);
 
-  const updateCoords = (coords: Partial<PlayerCoordinates>) => {
+  const updateCoords = useCallback((coords: Partial<PlayerCoordinates>) => {
     setSaveData((prev) => ({
       ...prev,
       playerCoords: { ...prev.playerCoords, ...coords },
       updatedAt: new Date().toISOString(),
     }));
-  };
+  }, []);
 
-  const stampSeal = (pigment: Pigment, score?: number) => {
+  const stampSeal = useCallback((pigment: Pigment, score?: number) => {
     setSaveData((prev) => {
       const current = prev.seals[pigment] || { pigment, stamped: false };
       const currentBest = current.bestScore || 0;
@@ -142,9 +169,9 @@ export const SaveGameProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updatedAt: new Date().toISOString(),
       };
     });
-  };
+  }, []);
 
-  const recordGameResult = (gameId: string, won: boolean, score = 0) => {
+  const recordGameResult = useCallback((gameId: string, won: boolean, score = 0) => {
     setSaveData((prev) => {
       const existing = prev.minigames[gameId] || {
         highScore: 0,
@@ -165,9 +192,9 @@ export const SaveGameProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updatedAt: new Date().toISOString(),
       };
     });
-  };
+  }, []);
 
-  const unlockLoreFragment = (fragmentId: string) => {
+  const unlockLoreFragment = useCallback((fragmentId: string) => {
     setSaveData((prev) => {
       if (prev.loreFragments.includes(fragmentId)) return prev;
       return {
@@ -176,9 +203,9 @@ export const SaveGameProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updatedAt: new Date().toISOString(),
       };
     });
-  };
+  }, []);
 
-  const resetGame = () => {
+  const resetGame = useCallback(() => {
     const fresh: SaveGameData = {
       ...DEFAULT_SAVE,
       createdAt: new Date().toISOString(),
@@ -186,13 +213,13 @@ export const SaveGameProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
     setSaveData(fresh);
     localStorage.removeItem(STORAGE_KEY);
-  };
+  }, []);
 
-  const exportSaveJson = (): string => {
+  const exportSaveJson = useCallback((): string => {
     return JSON.stringify(saveData, null, 2);
-  };
+  }, [saveData]);
 
-  const importSaveJson = (jsonString: string): boolean => {
+  const importSaveJson = useCallback((jsonString: string): boolean => {
     try {
       const parsed = JSON.parse(jsonString);
       if (parsed && typeof parsed === 'object' && parsed.version) {
@@ -203,21 +230,33 @@ export const SaveGameProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error('Invalid save game JSON:', e);
     }
     return false;
-  };
+  }, []);
+
+  const value = useMemo<SaveGameContextValue>(
+    () => ({
+      saveData,
+      updateCoords,
+      stampSeal,
+      recordGameResult,
+      unlockLoreFragment,
+      resetGame,
+      exportSaveJson,
+      importSaveJson,
+    }),
+    [
+      saveData,
+      updateCoords,
+      stampSeal,
+      recordGameResult,
+      unlockLoreFragment,
+      resetGame,
+      exportSaveJson,
+      importSaveJson,
+    ]
+  );
 
   return (
-    <SaveGameContext.Provider
-      value={{
-        saveData,
-        updateCoords,
-        stampSeal,
-        recordGameResult,
-        unlockLoreFragment,
-        resetGame,
-        exportSaveJson,
-        importSaveJson,
-      }}
-    >
+    <SaveGameContext.Provider value={value}>
       {children}
     </SaveGameContext.Provider>
   );

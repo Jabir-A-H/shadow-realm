@@ -51,7 +51,9 @@ export const MinigameContainer: React.FC<MinigameContainerProps> = ({
         <header className="flex items-center justify-between px-4 py-2.5 bg-[#1a1a1a] border-b border-[#282828] z-30 shrink-0">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => {
+              tabIndex={-1}
+              onClick={(e) => {
+                (e.currentTarget as HTMLElement).blur();
                 playSfx('click');
                 onClose();
               }}
@@ -84,7 +86,9 @@ export const MinigameContainer: React.FC<MinigameContainerProps> = ({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
+              tabIndex={-1}
+              onClick={(e) => {
+                (e.currentTarget as HTMLElement).blur();
                 playSfx('click');
                 setShowControlsHelp((prev) => !prev);
               }}
@@ -99,7 +103,9 @@ export const MinigameContainer: React.FC<MinigameContainerProps> = ({
             </button>
 
             <button
-              onClick={() => {
+              tabIndex={-1}
+              onClick={(e) => {
+                (e.currentTarget as HTMLElement).blur();
                 playSfx('click');
                 toggleMute();
               }}
@@ -110,7 +116,9 @@ export const MinigameContainer: React.FC<MinigameContainerProps> = ({
             </button>
 
             <button
-              onClick={() => {
+              tabIndex={-1}
+              onClick={(e) => {
+                (e.currentTarget as HTMLElement).blur();
                 playSfx('click');
                 onRestart();
               }}
@@ -121,7 +129,9 @@ export const MinigameContainer: React.FC<MinigameContainerProps> = ({
             </button>
 
             <button
-              onClick={() => {
+              tabIndex={-1}
+              onClick={(e) => {
+                (e.currentTarget as HTMLElement).blur();
                 playSfx('click');
                 onClose();
               }}

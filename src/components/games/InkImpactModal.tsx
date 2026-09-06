@@ -31,6 +31,20 @@ export const InkImpactModal: React.FC<InkImpactModalProps> = ({
 
   const config = ACTION_GAMES_METADATA['ink-impact'];
 
+  const ensureFocus = useCallback(() => {
+    if (containerRef.current) {
+      const canvas = containerRef.current.querySelector('canvas');
+      if (canvas) {
+        canvas.tabIndex = 0;
+        canvas.style.outline = 'none';
+        if (document.activeElement && document.activeElement !== canvas) {
+          (document.activeElement as HTMLElement)?.blur();
+        }
+        canvas.focus();
+      }
+    }
+  }, []);
+
   const initGame = useCallback(() => {
     if (!containerRef.current) return;
     if (gameRef.current) {
@@ -64,6 +78,9 @@ export const InkImpactModal: React.FC<InkImpactModalProps> = ({
         default: 'arcade',
         arcade: { gravity: { x: 0, y: 0 }, debug: false },
       },
+      input: {
+        keyboard: true,
+      },
       render: { antialias: true, roundPixels: true },
       scale: {
         mode: Phaser.Scale.RESIZE,
@@ -73,11 +90,26 @@ export const InkImpactModal: React.FC<InkImpactModalProps> = ({
     };
 
     gameRef.current = new Phaser.Game(gameConfig);
-  }, [difficulty, playSfx]);
+
+    requestAnimationFrame(ensureFocus);
+    setTimeout(ensureFocus, 60);
+    setTimeout(ensureFocus, 200);
+  }, [difficulty, playSfx, ensureFocus]);
 
   useEffect(() => {
     if (isOpen) {
       initGame();
+      const focusTimer = setTimeout(() => {
+        ensureFocus();
+      }, 150);
+      return () => {
+        clearTimeout(focusTimer);
+        if (gameRef.current) {
+          gameRef.current.destroy(true);
+          gameRef.current = null;
+          sceneRef.current = null;
+        }
+      };
     }
     return () => {
       if (gameRef.current) {
@@ -99,6 +131,10 @@ export const InkImpactModal: React.FC<InkImpactModalProps> = ({
     onClose();
   };
 
+  const handleContainerFocus = () => {
+    ensureFocus();
+  };
+
   return (
     <MinigameContainer
       config={config}
@@ -109,7 +145,13 @@ export const InkImpactModal: React.FC<InkImpactModalProps> = ({
       onClaimVictory={handleClaim}
       wardenColorHex={wardenColorHex}
     >
-      <div ref={containerRef} className="w-full h-full" />
+      <div
+        ref={containerRef}
+        tabIndex={0}
+        onClick={handleContainerFocus}
+        onPointerDown={handleContainerFocus}
+        className="w-full h-full outline-none focus:outline-none"
+      />
 
       {/* On-screen touch buttons */}
       <div className="absolute bottom-4 inset-x-4 flex items-center justify-between pointer-events-none z-30">
@@ -119,6 +161,8 @@ export const InkImpactModal: React.FC<InkImpactModalProps> = ({
           <button
             onPointerDown={() => sceneRef.current?.setVirtualMovement({ x: 0, y: -1 })}
             onPointerUp={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
+            onPointerLeave={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
+            onPointerCancel={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
             className="w-10 h-10 rounded-lg bg-[#222]/85 active:bg-[#333] border border-[#444] text-[#f4ebd0] flex items-center justify-center shadow"
           >
             <ChevronUp size={18} />
@@ -127,6 +171,8 @@ export const InkImpactModal: React.FC<InkImpactModalProps> = ({
           <button
             onPointerDown={() => sceneRef.current?.setVirtualMovement({ x: -1, y: 0 })}
             onPointerUp={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
+            onPointerLeave={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
+            onPointerCancel={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
             className="w-10 h-10 rounded-lg bg-[#222]/85 active:bg-[#333] border border-[#444] text-[#f4ebd0] flex items-center justify-center shadow"
           >
             <ChevronLeft size={18} />
@@ -134,6 +180,8 @@ export const InkImpactModal: React.FC<InkImpactModalProps> = ({
           <button
             onPointerDown={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 1 })}
             onPointerUp={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
+            onPointerLeave={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
+            onPointerCancel={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
             className="w-10 h-10 rounded-lg bg-[#222]/85 active:bg-[#333] border border-[#444] text-[#f4ebd0] flex items-center justify-center shadow"
           >
             <ChevronDown size={18} />
@@ -141,6 +189,8 @@ export const InkImpactModal: React.FC<InkImpactModalProps> = ({
           <button
             onPointerDown={() => sceneRef.current?.setVirtualMovement({ x: 1, y: 0 })}
             onPointerUp={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
+            onPointerLeave={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
+            onPointerCancel={() => sceneRef.current?.setVirtualMovement({ x: 0, y: 0 })}
             className="w-10 h-10 rounded-lg bg-[#222]/85 active:bg-[#333] border border-[#444] text-[#f4ebd0] flex items-center justify-center shadow"
           >
             <ChevronRight size={18} />

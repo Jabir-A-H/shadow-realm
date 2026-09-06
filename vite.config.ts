@@ -17,6 +17,9 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    watch: {
+      ignored: ['**/public/images/**', '**/node_modules/**', '**/.git/**'],
+    },
   },
   build: {
     target: 'esnext',

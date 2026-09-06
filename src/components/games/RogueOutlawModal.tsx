@@ -4,7 +4,7 @@ import { MinigameContainer } from './MinigameContainer';
 import { RogueOutlawScene } from '../../lib/games/outlaw/RogueOutlawScene';
 import { ACTION_GAMES_METADATA, ActionGameResult, ActionDifficulty } from '../../lib/games/actionGameTypes';
 import { useAudio, ProceduralSfxType } from '../../contexts/AudioContext';
-import { RotateCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RotateCw, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Crosshair } from 'lucide-react';
 
 interface RogueOutlawModalProps {
   isOpen: boolean;
@@ -30,6 +30,20 @@ export const RogueOutlawModal: React.FC<RogueOutlawModalProps> = ({
   const [keySeed, setKeySeed] = useState(0);
 
   const config = ACTION_GAMES_METADATA['rogue-outlaw'];
+
+  const ensureFocus = useCallback(() => {
+    if (containerRef.current) {
+      const canvas = containerRef.current.querySelector('canvas');
+      if (canvas) {
+        canvas.tabIndex = 0;
+        canvas.style.outline = 'none';
+        if (document.activeElement && document.activeElement !== canvas) {
+          (document.activeElement as HTMLElement)?.blur();
+        }
+        canvas.focus();
+      }
+    }
+  }, []);
 
   const initGame = useCallback(() => {
     if (!containerRef.current) return;
@@ -60,6 +74,9 @@ export const RogueOutlawModal: React.FC<RogueOutlawModalProps> = ({
       width: containerRef.current.clientWidth || 800,
       height: containerRef.current.clientHeight || 500,
       backgroundColor: '#1a1414',
+      input: {
+        keyboard: true,
+      },
       physics: {
         default: 'arcade',
         arcade: { gravity: { x: 0, y: 0 }, debug: false },
@@ -73,11 +90,26 @@ export const RogueOutlawModal: React.FC<RogueOutlawModalProps> = ({
     };
 
     gameRef.current = new Phaser.Game(gameConfig);
-  }, [difficulty, playSfx]);
+
+    requestAnimationFrame(ensureFocus);
+    setTimeout(ensureFocus, 60);
+    setTimeout(ensureFocus, 200);
+  }, [difficulty, playSfx, ensureFocus]);
 
   useEffect(() => {
     if (isOpen) {
       initGame();
+      const focusTimer = setTimeout(() => {
+        ensureFocus();
+      }, 150);
+      return () => {
+        clearTimeout(focusTimer);
+        if (gameRef.current) {
+          gameRef.current.destroy(true);
+          gameRef.current = null;
+          sceneRef.current = null;
+        }
+      };
     }
     return () => {
       if (gameRef.current) {
@@ -99,6 +131,10 @@ export const RogueOutlawModal: React.FC<RogueOutlawModalProps> = ({
     onClose();
   };
 
+  const handleContainerFocus = () => {
+    ensureFocus();
+  };
+
   return (
     <MinigameContainer
       config={config}
@@ -109,7 +145,13 @@ export const RogueOutlawModal: React.FC<RogueOutlawModalProps> = ({
       onClaimVictory={handleClaim}
       wardenColorHex={wardenColorHex}
     >
-      <div ref={containerRef} className="w-full h-full" />
+      <div
+        ref={containerRef}
+        tabIndex={0}
+        onClick={handleContainerFocus}
+        onPointerDown={handleContainerFocus}
+        className="w-full h-full outline-none focus:outline-none"
+      />
 
       {/* On-screen touch buttons */}
       <div className="absolute bottom-4 inset-x-4 flex items-center justify-between pointer-events-none z-30">
@@ -117,41 +159,65 @@ export const RogueOutlawModal: React.FC<RogueOutlawModalProps> = ({
         <div className="grid grid-cols-3 gap-1 pointer-events-auto w-32">
           <div />
           <button
+            tabIndex={-1}
             onPointerDown={() => sceneRef.current?.setVirtualMove({ x: 0, y: -1 })}
             onPointerUp={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
+            onPointerLeave={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
+            onPointerCancel={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
             className="w-10 h-10 rounded-lg bg-[#222]/85 active:bg-[#333] border border-[#444] text-[#f4ebd0] flex items-center justify-center shadow"
           >
             <ChevronUp size={18} />
           </button>
           <div />
           <button
+            tabIndex={-1}
             onPointerDown={() => sceneRef.current?.setVirtualMove({ x: -1, y: 0 })}
             onPointerUp={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
+            onPointerLeave={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
+            onPointerCancel={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
             className="w-10 h-10 rounded-lg bg-[#222]/85 active:bg-[#333] border border-[#444] text-[#f4ebd0] flex items-center justify-center shadow"
           >
             <ChevronLeft size={18} />
           </button>
           <button
+            tabIndex={-1}
             onPointerDown={() => sceneRef.current?.setVirtualMove({ x: 0, y: 1 })}
             onPointerUp={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
+            onPointerLeave={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
+            onPointerCancel={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
             className="w-10 h-10 rounded-lg bg-[#222]/85 active:bg-[#333] border border-[#444] text-[#f4ebd0] flex items-center justify-center shadow"
           >
             <ChevronDown size={18} />
           </button>
           <button
+            tabIndex={-1}
             onPointerDown={() => sceneRef.current?.setVirtualMove({ x: 1, y: 0 })}
             onPointerUp={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
+            onPointerLeave={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
+            onPointerCancel={() => sceneRef.current?.setVirtualMove({ x: 0, y: 0 })}
             className="w-10 h-10 rounded-lg bg-[#222]/85 active:bg-[#333] border border-[#444] text-[#f4ebd0] flex items-center justify-center shadow"
           >
             <ChevronRight size={18} />
           </button>
         </div>
 
-        {/* Combat Roll Button */}
+        {/* Action Buttons: Fire & Combat Roll */}
         <div className="flex items-center gap-2 pointer-events-auto">
           <button
+            tabIndex={-1}
+            onPointerDown={() => sceneRef.current?.triggerFire()}
+            className="px-5 h-12 rounded-xl bg-[#b3312c]/90 active:bg-[#d93833] border border-[#f4ebd0]/40 text-[#f4ebd0] flex items-center gap-1.5 font-mono text-xs font-bold shadow-lg"
+            title="Fire Revolver [Click / Tap]"
+          >
+            <Crosshair size={18} />
+            <span>Fire</span>
+          </button>
+
+          <button
+            tabIndex={-1}
             onClick={() => sceneRef.current?.triggerRoll()}
             className="px-5 h-12 rounded-xl bg-[#3a1a1a]/90 active:bg-[#522525] border border-[#b3312c] text-[#f4ebd0] flex items-center gap-1.5 font-mono text-xs font-bold shadow-lg"
+            title="Combat Roll [Space / Shift]"
           >
             <RotateCw size={16} />
             <span>Roll [Space]</span>

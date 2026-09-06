@@ -58,10 +58,18 @@ export class BladeDuelScene extends Phaser.Scene {
   private keyA!: Phaser.Input.Keyboard.Key;
   private keyD!: Phaser.Input.Keyboard.Key;
   private keyS!: Phaser.Input.Keyboard.Key;
+  private keySpace!: Phaser.Input.Keyboard.Key;
   private keyJ!: Phaser.Input.Keyboard.Key;
   private keyK!: Phaser.Input.Keyboard.Key;
   private keyZ!: Phaser.Input.Keyboard.Key;
   private keyX!: Phaser.Input.Keyboard.Key;
+
+  // DOM Keyboard tracking ensuring controls work in all modal & focus conditions
+  private rawKeys: Record<string, boolean> = {};
+  private rawJustDown: Record<string, boolean> = {};
+  private onKeyDownHandler!: (e: KeyboardEvent) => void;
+  private onKeyUpHandler!: (e: KeyboardEvent) => void;
+  private onBlurHandler!: () => void;
 
   // Virtual inputs from touch
   private virtualMove = 0; // -1 (back), 0 (none), 1 (forward)
@@ -121,11 +129,64 @@ export class BladeDuelScene extends Phaser.Scene {
       this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
       this.keyD = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
       this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+      this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
       this.keyJ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.J);
       this.keyK = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.K);
       this.keyZ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
       this.keyX = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
     }
+
+    // Direct DOM keyboard tracking ensuring zero dropped inputs across all browsers
+    this.rawKeys = {};
+    this.rawJustDown = {};
+    this.onKeyDownHandler = (e: KeyboardEvent) => {
+      const code = e.code || '';
+      const keyLower = e.key ? e.key.toLowerCase() : '';
+      if (code && !this.rawKeys[code] && !(keyLower && this.rawKeys[keyLower])) {
+        this.rawJustDown[code] = true;
+        if (keyLower) this.rawJustDown[keyLower] = true;
+      }
+      if (code) this.rawKeys[code] = true;
+      if (keyLower) this.rawKeys[keyLower] = true;
+
+      // Prevent scrolling or button clicks when Space/Arrows are pressed
+      if (
+        !e.altKey && !e.ctrlKey && !e.metaKey &&
+        ['Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(code)
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    this.onKeyUpHandler = (e: KeyboardEvent) => {
+      const code = e.code || '';
+      const keyLower = e.key ? e.key.toLowerCase() : '';
+      if (code) {
+        this.rawKeys[code] = false;
+        this.rawJustDown[code] = false;
+      }
+      if (keyLower) {
+        this.rawKeys[keyLower] = false;
+        this.rawJustDown[keyLower] = false;
+      }
+    };
+
+    this.onBlurHandler = () => {
+      this.rawKeys = {};
+      this.rawJustDown = {};
+    };
+
+    window.addEventListener('keydown', this.onKeyDownHandler, false);
+    window.addEventListener('keyup', this.onKeyUpHandler, false);
+    window.addEventListener('blur', this.onBlurHandler);
+
+    const cleanUpListeners = () => {
+      window.removeEventListener('keydown', this.onKeyDownHandler, false);
+      window.removeEventListener('keyup', this.onKeyUpHandler, false);
+      window.removeEventListener('blur', this.onBlurHandler);
+    };
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanUpListeners);
+    this.events.once(Phaser.Scenes.Events.DESTROY, cleanUpListeners);
 
     this.showCallout('THE NEUTRAL', '#e0a96d', 1400);
   }
@@ -135,8 +196,9 @@ export class BladeDuelScene extends Phaser.Scene {
 
     this.updateTimers(delta);
     if (!this.isRoundOver) {
-      this.handlePlayerInput();
+      this.handlePlayerInput(delta);
       this.updateAI(time);
+      this.handleWardenMovement(delta);
       this.checkCombatCollisions();
     }
     this.updateSpriteVisuals();
@@ -181,19 +243,37 @@ export class BladeDuelScene extends Phaser.Scene {
     );
   }
 
-  private handlePlayerInput() {
-    if (
-      Phaser.Input.Keyboard.JustDown(this.keyJ) ||
-      Phaser.Input.Keyboard.JustDown(this.keyZ)
-    ) {
+  private consumeJustDown(code: string, keyName?: string): boolean {
+    if (this.rawJustDown[code]) {
+      this.rawJustDown[code] = false;
+      return true;
+    }
+    if (keyName && this.rawJustDown[keyName.toLowerCase()]) {
+      this.rawJustDown[keyName.toLowerCase()] = false;
+      return true;
+    }
+    return false;
+  }
+
+  private handlePlayerInput(delta: number) {
+    const pokePressed =
+      this.consumeJustDown('KeyJ', 'j') ||
+      this.consumeJustDown('KeyZ', 'z') ||
+      (this.keyJ && Phaser.Input.Keyboard.JustDown(this.keyJ)) ||
+      (this.keyZ && Phaser.Input.Keyboard.JustDown(this.keyZ));
+
+    if (pokePressed) {
       this.triggerPoke();
       return;
     }
 
-    if (
-      Phaser.Input.Keyboard.JustDown(this.keyK) ||
-      Phaser.Input.Keyboard.JustDown(this.keyX)
-    ) {
+    const heavyPressed =
+      this.consumeJustDown('KeyK', 'k') ||
+      this.consumeJustDown('KeyX', 'x') ||
+      (this.keyK && Phaser.Input.Keyboard.JustDown(this.keyK)) ||
+      (this.keyX && Phaser.Input.Keyboard.JustDown(this.keyX));
+
+    if (heavyPressed) {
       this.triggerHeavy();
       return;
     }
@@ -201,36 +281,53 @@ export class BladeDuelScene extends Phaser.Scene {
     if (!this.canAct(this.playerState)) return;
 
     const isGuarding =
-      (this.cursors && this.cursors.down.isDown) ||
-      (this.keyS && this.keyS.isDown) ||
+      Boolean(this.rawKeys['Space']) ||
+      Boolean(this.rawKeys[' ']) ||
+      Boolean(this.rawKeys['KeyS']) ||
+      Boolean(this.rawKeys['s']) ||
+      Boolean(this.rawKeys['ArrowDown']) ||
+      Boolean(this.rawKeys['arrowdown']) ||
+      Boolean(this.cursors?.down?.isDown) ||
+      Boolean(this.cursors?.space?.isDown) ||
+      Boolean(this.keyS?.isDown) ||
+      Boolean(this.keySpace?.isDown) ||
       this.virtualGuard;
 
     const isMovingLeft =
-      (this.cursors && this.cursors.left.isDown) ||
-      (this.keyA && this.keyA.isDown) ||
+      Boolean(this.rawKeys['KeyA']) ||
+      Boolean(this.rawKeys['a']) ||
+      Boolean(this.rawKeys['ArrowLeft']) ||
+      Boolean(this.rawKeys['arrowleft']) ||
+      Boolean(this.cursors?.left?.isDown) ||
+      Boolean(this.keyA?.isDown) ||
       this.virtualMove < 0;
 
     const isMovingRight =
-      (this.cursors && this.cursors.right.isDown) ||
-      (this.keyD && this.keyD.isDown) ||
+      Boolean(this.rawKeys['KeyD']) ||
+      Boolean(this.rawKeys['d']) ||
+      Boolean(this.rawKeys['ArrowRight']) ||
+      Boolean(this.rawKeys['arrowright']) ||
+      Boolean(this.cursors?.right?.isDown) ||
+      Boolean(this.keyD?.isDown) ||
       this.virtualMove > 0;
 
     const speed = 150;
     const { width } = this.scale;
     const minDistance = 70;
+    const dt = delta > 0 ? delta : (this.game.loop?.delta || 16.6);
 
     if (isGuarding) {
       this.playerState = 'guard';
-    } else if (isMovingRight) {
+    } else if (isMovingRight && !isMovingLeft) {
       // Step forward towards opponent
       if (this.playerSprite.x + minDistance < this.wardenSprite.x) {
-        this.playerSprite.x += (speed * this.game.loop.delta) / 1000;
+        this.playerSprite.x += (speed * dt) / 1000;
       }
       this.playerState = 'walk-forward';
-    } else if (isMovingLeft) {
+    } else if (isMovingLeft && !isMovingRight) {
       // Step backward away
       if (this.playerSprite.x > width * 0.1) {
-        this.playerSprite.x -= (speed * this.game.loop.delta) / 1000;
+        this.playerSprite.x -= (speed * dt) / 1000;
       }
       this.playerState = 'walk-backward';
     } else {
@@ -306,9 +403,6 @@ export class BladeDuelScene extends Phaser.Scene {
     this.lastAiDecisionTime = time;
 
     const dist = this.wardenSprite.x - this.playerSprite.x;
-    const { width } = this.scale;
-    const deltaSeconds = decisionInterval / 1000;
-    const speed = 135;
 
     // 1. Whiff Punish reaction: If player is recovering from whiffed heavy/poke
     if (
@@ -334,14 +428,8 @@ export class BladeDuelScene extends Phaser.Scene {
 
     // 3. Spacing Game (Blade Neutral): Stay in ideal duel distance (~140-190px)
     if (dist < 115) {
-      // Too close: Step back
-      if (this.wardenSprite.x < width * 0.9) {
-        this.wardenSprite.x += speed * deltaSeconds;
-      }
       this.wardenState = 'walk-backward';
     } else if (dist > 220) {
-      // Too far: Advance into range
-      this.wardenSprite.x -= speed * deltaSeconds;
       this.wardenState = 'walk-forward';
     } else {
       // In the sweet spot: Randomize strike or feint step
@@ -360,10 +448,30 @@ export class BladeDuelScene extends Phaser.Scene {
         this.wardenState = 'idle';
       } else {
         // Feint backstep
-        if (this.wardenSprite.x < width * 0.88) {
-          this.wardenSprite.x += speed * 0.5 * deltaSeconds;
-        }
         this.wardenState = 'walk-backward';
+      }
+    }
+  }
+
+  private handleWardenMovement(delta: number) {
+    if (!this.canAct(this.wardenState)) return;
+
+    const speed = 135;
+    const { width } = this.scale;
+    const minDistance = 75;
+    const step = (speed * delta) / 1000;
+
+    if (this.wardenState === 'walk-forward') {
+      if (this.wardenSprite.x - step > this.playerSprite.x + minDistance) {
+        this.wardenSprite.x -= step;
+      } else {
+        this.wardenState = 'idle';
+      }
+    } else if (this.wardenState === 'walk-backward') {
+      if (this.wardenSprite.x + step < width * 0.9) {
+        this.wardenSprite.x += step;
+      } else {
+        this.wardenState = 'idle';
       }
     }
   }

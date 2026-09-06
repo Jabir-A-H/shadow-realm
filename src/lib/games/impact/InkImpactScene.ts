@@ -170,6 +170,7 @@ export class InkImpactScene extends Phaser.Scene {
     this.handlePlayerMovement();
     this.handleFiring(time);
     this.updateEnemySpawns(time);
+    this.updateEnemies(time);
     this.updateBossBehavior(time);
     this.cleanupOffscreenObjects();
   }
@@ -223,10 +224,10 @@ export class InkImpactScene extends Phaser.Scene {
     let vy = 0;
 
     if (this.cursors) {
-      if (this.cursors.left.isDown || this.keyA.isDown) vx -= 1;
-      if (this.cursors.right.isDown || this.keyD.isDown) vx += 1;
-      if (this.cursors.up.isDown || this.keyW.isDown) vy -= 1;
-      if (this.cursors.down.isDown || this.keyS.isDown) vy += 1;
+      if (this.cursors.left?.isDown || this.keyA?.isDown) vx -= 1;
+      if (this.cursors.right?.isDown || this.keyD?.isDown) vx += 1;
+      if (this.cursors.up?.isDown || this.keyW?.isDown) vy -= 1;
+      if (this.cursors.down?.isDown || this.keyS?.isDown) vy += 1;
     }
 
     if (this.virtualDir.x !== 0 || this.virtualDir.y !== 0) {
@@ -354,6 +355,28 @@ export class InkImpactScene extends Phaser.Scene {
       squid.setData('lastShot', this.time.now);
       squid.setDepth(12);
     }
+  }
+
+  private updateEnemies(time: number) {
+    this.enemies.getChildren().forEach((e) => {
+      const enemy = e as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+      if (!enemy.active) return;
+
+      const type = enemy.getData('type') as string;
+      if (type === 'blot') {
+        const baseY = enemy.getData('baseY') as number;
+        if (baseY !== undefined) {
+          enemy.y = baseY + Math.sin(time * 0.005 + enemy.x * 0.02) * 35;
+        }
+      } else if (type === 'squid') {
+        const lastShot = (enemy.getData('lastShot') as number) || 0;
+        if (time - lastShot > 1800 && enemy.x > 60 && enemy.x < this.scale.width - 20) {
+          enemy.setData('lastShot', time);
+          this.callbacks.onPlaySfx?.('ink-splash');
+          this.spawnEnemyBullet(enemy.x - 20, enemy.y, -210, 0);
+        }
+      }
+    });
   }
 
   // ==========================================

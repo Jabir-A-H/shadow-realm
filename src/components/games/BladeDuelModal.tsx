@@ -33,6 +33,20 @@ export const BladeDuelModal: React.FC<BladeDuelModalProps> = ({
 
   const config = ACTION_GAMES_METADATA['blade-duel'];
 
+  const ensureFocus = useCallback(() => {
+    if (containerRef.current) {
+      const canvas = containerRef.current.querySelector('canvas');
+      if (canvas) {
+        canvas.tabIndex = 0;
+        canvas.style.outline = 'none';
+        if (document.activeElement && document.activeElement !== canvas) {
+          (document.activeElement as HTMLElement)?.blur();
+        }
+        canvas.focus();
+      }
+    }
+  }, []);
+
   const initGame = useCallback(() => {
     if (!containerRef.current) return;
     if (gameRef.current) {
@@ -68,6 +82,9 @@ export const BladeDuelModal: React.FC<BladeDuelModalProps> = ({
       width: containerRef.current.clientWidth || 800,
       height: containerRef.current.clientHeight || 500,
       backgroundColor: '#191919',
+      input: {
+        keyboard: true,
+      },
       render: { antialias: true, roundPixels: true },
       scale: {
         mode: Phaser.Scale.RESIZE,
@@ -77,11 +94,26 @@ export const BladeDuelModal: React.FC<BladeDuelModalProps> = ({
     };
 
     gameRef.current = new Phaser.Game(gameConfig);
-  }, [difficulty, playSfx, wardenColorHex, wardenName]);
+
+    requestAnimationFrame(ensureFocus);
+    setTimeout(ensureFocus, 60);
+    setTimeout(ensureFocus, 200);
+  }, [difficulty, playSfx, wardenColorHex, wardenName, ensureFocus]);
 
   useEffect(() => {
     if (isOpen) {
       initGame();
+      const focusTimer = setTimeout(() => {
+        ensureFocus();
+      }, 150);
+      return () => {
+        clearTimeout(focusTimer);
+        if (gameRef.current) {
+          gameRef.current.destroy(true);
+          gameRef.current = null;
+          sceneRef.current = null;
+        }
+      };
     }
     return () => {
       if (gameRef.current) {
@@ -103,6 +135,10 @@ export const BladeDuelModal: React.FC<BladeDuelModalProps> = ({
     onClose();
   };
 
+  const handleContainerFocus = () => {
+    ensureFocus();
+  };
+
   return (
     <MinigameContainer
       config={config}
@@ -113,13 +149,20 @@ export const BladeDuelModal: React.FC<BladeDuelModalProps> = ({
       onClaimVictory={handleClaim}
       wardenColorHex={wardenColorHex}
     >
-      <div ref={containerRef} className="w-full h-full" />
+      <div
+        ref={containerRef}
+        tabIndex={0}
+        onClick={handleContainerFocus}
+        onPointerDown={handleContainerFocus}
+        className="w-full h-full outline-none focus:outline-none"
+      />
 
       {/* On-Screen Mobile Action Buttons */}
       <div className="absolute bottom-4 inset-x-4 flex items-center justify-between pointer-events-none z-30">
         {/* Left: Step D-Pad & Guard */}
         <div className="flex items-center gap-2 pointer-events-auto">
           <button
+            tabIndex={-1}
             onPointerDown={() => sceneRef.current?.setVirtualMovement(-1)}
             onPointerUp={() => sceneRef.current?.setVirtualMovement(0)}
             onPointerLeave={() => sceneRef.current?.setVirtualMovement(0)}
@@ -129,6 +172,7 @@ export const BladeDuelModal: React.FC<BladeDuelModalProps> = ({
           </button>
 
           <button
+            tabIndex={-1}
             onPointerDown={() => sceneRef.current?.setVirtualMovement(1)}
             onPointerUp={() => sceneRef.current?.setVirtualMovement(0)}
             onPointerLeave={() => sceneRef.current?.setVirtualMovement(0)}
@@ -138,6 +182,7 @@ export const BladeDuelModal: React.FC<BladeDuelModalProps> = ({
           </button>
 
           <button
+            tabIndex={-1}
             onPointerDown={() => sceneRef.current?.setVirtualGuard(true)}
             onPointerUp={() => sceneRef.current?.setVirtualGuard(false)}
             onPointerLeave={() => sceneRef.current?.setVirtualGuard(false)}
@@ -151,6 +196,7 @@ export const BladeDuelModal: React.FC<BladeDuelModalProps> = ({
         {/* Right: Poke & Heavy Strike */}
         <div className="flex items-center gap-2 pointer-events-auto">
           <button
+            tabIndex={-1}
             onClick={() => sceneRef.current?.triggerPoke()}
             className="px-4 h-12 rounded-xl bg-[#242424]/90 active:bg-[#333] border border-[#e0a96d]/60 text-[#e0a96d] flex items-center gap-1 font-serif text-xs font-bold shadow-lg"
           >
@@ -159,6 +205,7 @@ export const BladeDuelModal: React.FC<BladeDuelModalProps> = ({
           </button>
 
           <button
+            tabIndex={-1}
             onClick={() => sceneRef.current?.triggerHeavy()}
             className="px-4 h-12 rounded-xl bg-[#381a1a]/90 active:bg-[#522525] border border-[#b3312c] text-[#f4ebd0] flex items-center gap-1 font-serif text-xs font-bold shadow-lg"
           >
