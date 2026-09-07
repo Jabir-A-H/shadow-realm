@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { CONTINENTAL_REGIONS, COLOR_GATES, getRegionAt, ColorGateTrigger, RegionZone } from './tilemapData';
+import { CONTINENTAL_REGIONS, COLOR_GATES, getRegionAt, ColorGateTrigger, RegionZone, RegionalLandmark } from './tilemapData';
 import { Pigment } from '../../contexts/SpectrumContext';
 import { OverworldCallbacks } from './phaserConfig';
 
@@ -17,6 +17,15 @@ interface ShrineEntity {
   wardenSprite: Phaser.GameObjects.Sprite;
   runeText: Phaser.GameObjects.Text;
   glowCircle: Phaser.GameObjects.Arc;
+}
+
+interface LandmarkEntity {
+  landmark: RegionalLandmark;
+  x: number;
+  y: number;
+  sprite: Phaser.GameObjects.Sprite;
+  glowCircle: Phaser.GameObjects.Arc;
+  bannerText: Phaser.GameObjects.Text;
 }
 
 interface BarrierEntity {
@@ -47,6 +56,7 @@ export class OverworldScene extends Phaser.Scene {
 
   // Shrines & Barriers
   private shrines: ShrineEntity[] = [];
+  private landmarks: LandmarkEntity[] = [];
   private barriers: BarrierEntity[] = [];
   private barrierGroup!: Phaser.Physics.Arcade.StaticGroup;
   private lastBarrierEncounterTime = 0;
@@ -55,6 +65,7 @@ export class OverworldScene extends Phaser.Scene {
   private promptContainer!: Phaser.GameObjects.Container;
   private promptText!: Phaser.GameObjects.Text;
   private activeNearbyShrine: ShrineEntity | null = null;
+  private activeNearbyLandmark: LandmarkEntity | null = null;
 
   // Movement & State
   private virtualInputVector: { x: number; y: number } = { x: 0, y: 0 };
@@ -98,6 +109,9 @@ export class OverworldScene extends Phaser.Scene {
 
     // 4. Build 7 Kingdom Warden Shrines & Torii Gates
     this.buildWardenShrines();
+
+    // 4b. Build Regional Strategy & Puzzle Landmarks
+    this.buildRegionalLandmarks();
 
     // 5. Create 2.5D Player (Shadow Wanderer with Drop Shadow)
     this.createPlayer();
@@ -144,7 +158,7 @@ export class OverworldScene extends Phaser.Scene {
   update(time: number) {
     this.handlePlayerMovement(time);
     this.updateDepthSorting();
-    this.checkProximityToShrines();
+    this.checkProximityToInteractables();
     this.updateAmbientParticles();
     this.updateWaterRipples(time);
 
@@ -218,6 +232,9 @@ export class OverworldScene extends Phaser.Scene {
         this.activeNearbyShrine.regionId,
         { x: this.activeNearbyShrine.x, y: this.activeNearbyShrine.y }
       );
+    } else if (this.activeNearbyLandmark) {
+      this.callbacks.onPlaySfx?.('parchment');
+      this.callbacks.onLandmarkEncounter?.(this.activeNearbyLandmark.landmark);
     }
   }
 
@@ -724,6 +741,118 @@ export class OverworldScene extends Phaser.Scene {
       ctx.fill();
       this.textures.addCanvas('footprint-ink', fCanvas);
     }
+
+    // 16. 2.5D Landmark Torii Gate / Pavilion (84x76)
+    if (!this.textures.exists('landmark-gate')) {
+      const gCanvas = document.createElement('canvas');
+      gCanvas.width = 84;
+      gCanvas.height = 76;
+      const ctx = gCanvas.getContext('2d')!;
+      // Base shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(42, 70, 36, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Stone plinths
+      ctx.fillStyle = '#2b2b2b';
+      ctx.fillRect(14, 62, 12, 6);
+      ctx.fillRect(58, 62, 12, 6);
+      // Pillars
+      ctx.fillStyle = '#b3312c';
+      ctx.fillRect(16, 18, 8, 46);
+      ctx.fillRect(60, 18, 8, 46);
+      // Cross lintel
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(8, 14, 68, 6);
+      // Top curved roof
+      ctx.fillStyle = '#222';
+      ctx.beginPath();
+      ctx.moveTo(4, 14);
+      ctx.quadraticCurveTo(42, 4, 80, 14);
+      ctx.lineTo(76, 10);
+      ctx.quadraticCurveTo(42, 2, 8, 10);
+      ctx.closePath();
+      ctx.fill();
+      // Center seal emblem
+      ctx.fillStyle = '#e0a96d';
+      ctx.beginPath();
+      ctx.arc(42, 24, 7, 0, Math.PI * 2);
+      ctx.fill();
+      this.textures.addCanvas('landmark-gate', gCanvas);
+    }
+
+    // 17. 2.5D Landmark Den / Teahouse / Salon (72x68)
+    if (!this.textures.exists('landmark-den')) {
+      const dCanvas = document.createElement('canvas');
+      dCanvas.width = 72;
+      dCanvas.height = 68;
+      const ctx = dCanvas.getContext('2d')!;
+      // Base shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(36, 62, 32, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // House body
+      ctx.fillStyle = '#3a2e2b';
+      ctx.fillRect(12, 26, 48, 36);
+      // Shoji / door lattice
+      ctx.fillStyle = '#e9d8a6';
+      ctx.fillRect(24, 38, 24, 24);
+      ctx.strokeStyle = '#221a18';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(24, 38, 24, 24);
+      ctx.beginPath();
+      ctx.moveTo(36, 38);
+      ctx.lineTo(36, 62);
+      ctx.moveTo(24, 50);
+      ctx.lineTo(48, 50);
+      ctx.stroke();
+      // Sloped tile roof
+      ctx.fillStyle = '#1c1d21';
+      ctx.beginPath();
+      ctx.moveTo(6, 28);
+      ctx.lineTo(36, 10);
+      ctx.lineTo(66, 28);
+      ctx.closePath();
+      ctx.fill();
+      // Hanging paper lantern
+      ctx.fillStyle = '#e0a96d';
+      ctx.beginPath();
+      ctx.arc(18, 34, 5, 0, Math.PI * 2);
+      ctx.fill();
+      this.textures.addCanvas('landmark-den', dCanvas);
+    }
+
+    // 18. 2.5D Landmark Archive / Obelisk (48x74)
+    if (!this.textures.exists('landmark-archive')) {
+      const aCanvas = document.createElement('canvas');
+      aCanvas.width = 48;
+      aCanvas.height = 74;
+      const ctx = aCanvas.getContext('2d')!;
+      // Base shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(24, 68, 20, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Stone pedestal
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(8, 56, 32, 12);
+      // Obelisk column
+      ctx.fillStyle = '#261b34';
+      ctx.beginPath();
+      ctx.moveTo(14, 56);
+      ctx.lineTo(18, 16);
+      ctx.lineTo(24, 6);
+      ctx.lineTo(30, 16);
+      ctx.lineTo(34, 56);
+      ctx.closePath();
+      ctx.fill();
+      // Illuminated glowing scroll / glyph
+      ctx.fillStyle = '#9d4edd';
+      ctx.fillRect(22, 22, 4, 26);
+      ctx.fillRect(18, 32, 12, 3);
+      this.textures.addCanvas('landmark-archive', aCanvas);
+    }
   }
 
   private generate2DTreeTexture(
@@ -1183,6 +1312,82 @@ export class OverworldScene extends Phaser.Scene {
   }
 
   // ==========================================
+  // REGIONAL STRATEGY & PUZZLE LANDMARKS
+  // ==========================================
+
+  private buildRegionalLandmarks() {
+    Object.values(CONTINENTAL_REGIONS).forEach((reg: RegionZone) => {
+      if (!reg.landmarks) return;
+      const hex = this.getPigmentHex(reg.pigment);
+      const hexNum = Phaser.Display.Color.HexStringToColor(hex).color;
+
+      reg.landmarks.forEach((landmark) => {
+        const { x, y } = landmark;
+
+        // 1. Subtle ground aura
+        const glowCircle = this.add
+          .circle(x, y + 10, 42, hexNum, 0.24)
+          .setDepth(3);
+
+        // 2. Landmark Sprite based on type
+        let spriteKey = 'landmark-den';
+        if (landmark.type === 'sanctum-gate') {
+          spriteKey = 'landmark-gate';
+        } else if (landmark.type === 'citadel-archive') {
+          spriteKey = 'landmark-archive';
+        }
+
+        const sprite = this.add.sprite(x, y, spriteKey);
+        sprite.setOrigin(0.5, 0.88);
+        sprite.setDepth(y);
+
+        // Gentle breathing animation
+        this.tweens.add({
+          targets: sprite,
+          y: y - 3,
+          duration: 1600,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        });
+
+        // 3. Floating name & sign banner overhead
+        const bannerText = this.add
+          .text(x, y - 56, landmark.name, {
+            fontFamily: "'Cinzel', serif",
+            fontSize: '11px',
+            fontStyle: 'bold',
+            color: hex,
+            stroke: '#141414',
+            strokeThickness: 3,
+            backgroundColor: '#141414cc',
+            padding: { x: 6, y: 2 },
+          })
+          .setOrigin(0.5)
+          .setDepth(y + 10);
+
+        this.tweens.add({
+          targets: bannerText,
+          y: y - 62,
+          duration: 1400,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut',
+        });
+
+        this.landmarks.push({
+          landmark,
+          x,
+          y,
+          sprite,
+          glowCircle,
+          bannerText,
+        });
+      });
+    });
+  }
+
+  // ==========================================
   // METROIDVANIA COLOR-GATE BARRIERS
   // ==========================================
 
@@ -1473,9 +1678,9 @@ export class OverworldScene extends Phaser.Scene {
     });
   }
 
-  private checkProximityToShrines() {
+  private checkProximityToInteractables() {
     let closestShrine: ShrineEntity | null = null;
-    let minDist = 85; // Proximity radius
+    let minShrineDist = 85;
 
     for (const shrine of this.shrines) {
       const dist = Phaser.Math.Distance.Between(
@@ -1484,18 +1689,43 @@ export class OverworldScene extends Phaser.Scene {
         shrine.x,
         shrine.y
       );
-      if (dist < minDist) {
-        minDist = dist;
+      if (dist < minShrineDist) {
+        minShrineDist = dist;
         closestShrine = shrine;
       }
     }
 
-    if (closestShrine) {
+    let closestLandmark: LandmarkEntity | null = null;
+    let minLandmarkDist = 80;
+
+    for (const lm of this.landmarks) {
+      const dist = Phaser.Math.Distance.Between(
+        this.player.x,
+        this.player.y,
+        lm.x,
+        lm.y
+      );
+      if (dist < minLandmarkDist) {
+        minLandmarkDist = dist;
+        closestLandmark = lm;
+      }
+    }
+
+    if (closestShrine && minShrineDist <= minLandmarkDist) {
       this.activeNearbyShrine = closestShrine;
+      this.activeNearbyLandmark = null;
+      this.promptText.setText('⚔️ [E] Speak with Warden');
       this.promptContainer.setPosition(closestShrine.x, closestShrine.y - 85);
+      this.promptContainer.setVisible(true);
+    } else if (closestLandmark) {
+      this.activeNearbyLandmark = closestLandmark;
+      this.activeNearbyShrine = null;
+      this.promptText.setText(`📜 [E] ${closestLandmark.landmark.name}`);
+      this.promptContainer.setPosition(closestLandmark.x, closestLandmark.y - 75);
       this.promptContainer.setVisible(true);
     } else {
       this.activeNearbyShrine = null;
+      this.activeNearbyLandmark = null;
       this.promptContainer.setVisible(false);
     }
   }

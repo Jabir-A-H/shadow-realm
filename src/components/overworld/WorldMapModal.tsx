@@ -144,6 +144,25 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                       <p className="text-[11px] text-[#e0a96d] font-mono mt-1">
                         Trial: {reg.signatureGame}
                       </p>
+
+                      {reg.landmarks && reg.landmarks.length > 0 && (
+                        <div className="mt-2.5 pt-2 border-t border-[#262626] space-y-1">
+                          <span className="text-[10px] font-mono text-[#f4ebd0]/40 uppercase tracking-wider">
+                            Landmarks & Dens:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {reg.landmarks.map((lm) => (
+                              <span
+                                key={lm.id}
+                                className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#1d1d1d] border border-[#333] text-[#e0a96d] flex items-center gap-1"
+                              >
+                                {lm.type === 'sanctum-gate' ? '⛩️' : lm.type === 'citadel-archive' ? '📜' : '🏮'}
+                                <span>{lm.name}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Fast Travel Button */}

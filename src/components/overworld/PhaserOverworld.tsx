@@ -25,6 +25,17 @@ import { BladeDuelModal } from '../games/BladeDuelModal';
 import { InkImpactModal } from '../games/InkImpactModal';
 import { RogueOutlawModal } from '../games/RogueOutlawModal';
 import { InkRushModal } from '../games/InkRushModal';
+import { PuzzleGameId, PUZZLE_GAMES_METADATA } from '../../lib/games/puzzleGameTypes';
+import { InkSlideModal } from '../games/react/InkSlideModal';
+import { InkFleetModal } from '../games/react/InkFleetModal';
+import { ArcheryModal } from '../games/react/ArcheryModal';
+import { UnoModal } from '../games/react/UnoModal';
+import { BloomModal } from '../games/react/BloomModal';
+import { QuickDrawModal } from '../games/react/QuickDrawModal';
+import { Connect4Modal } from '../games/react/Connect4Modal';
+import { GomokuModal } from '../games/react/GomokuModal';
+import { SudokuModal } from '../games/react/SudokuModal';
+import { MemoryFlipModal } from '../games/react/MemoryFlipModal';
 import confetti from 'canvas-confetti';
 
 const getTrialForRegion = (regionId: string): ActionGameId => {
@@ -69,9 +80,10 @@ export const PhaserOverworld: React.FC = () => {
   const [regionBanner, setRegionBanner] = useState<{ name: string; motto: string } | null>(null);
   const [barrierAlert, setBarrierAlert] = useState<{ name: string; pigment: Pigment } | null>(null);
 
-  // Trial Action State
+  // Trial Action & Strategy Minigame State
   const [activeBossCutscene, setActiveBossCutscene] = useState<ActionGameId | null>(null);
   const [activeTrialGame, setActiveTrialGame] = useState<ActionGameId | null>(null);
+  const [activePuzzleGame, setActivePuzzleGame] = useState<PuzzleGameId | null>(null);
   const [challengingWardenRegion, setChallengingWardenRegion] = useState<string | null>(null);
 
   // Mobile / Touch controls toggle
@@ -113,6 +125,11 @@ export const PhaserOverworld: React.FC = () => {
         setEncounterWardenId(wardenRegionId);
       },
 
+      onLandmarkEncounter: (landmark) => {
+        setActivePuzzleGame(landmark.gameId);
+        playSfx('parchment');
+      },
+
       onBarrierEncounter: (barrierName, requiredPigment) => {
         playSfx('clash');
         setBarrierAlert({ name: barrierName, pigment: requiredPigment });
@@ -151,31 +168,34 @@ export const PhaserOverworld: React.FC = () => {
   // Pause overworld & release keyboard captures when any modal or cutscene is active
   useEffect(() => {
     if (!gameHandleRef.current) return;
-    const isModalActive = Boolean(activeTrialGame || activeBossCutscene || isMapOpen || encounterWardenId);
+    const isModalActive = Boolean(
+      activeTrialGame || activeBossCutscene || isMapOpen || encounterWardenId || activePuzzleGame
+    );
     if (isModalActive) {
       gameHandleRef.current.pauseOverworld();
     } else {
       gameHandleRef.current.resumeOverworld();
     }
-  }, [activeTrialGame, activeBossCutscene, isMapOpen, encounterWardenId]);
+  }, [activeTrialGame, activeBossCutscene, isMapOpen, encounterWardenId, activePuzzleGame]);
 
   // 3. Global Keyboard Shortcuts (M for Map, Esc for close)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'm' || e.key === 'M') {
-        if (!encounterWardenId && !activeBossCutscene && !activeTrialGame) {
+        if (!encounterWardenId && !activeBossCutscene && !activeTrialGame && !activePuzzleGame) {
           playSfx('parchment');
           setIsMapOpen((prev) => !prev);
         }
       } else if (e.key === 'Escape') {
         setIsMapOpen(false);
         setEncounterWardenId(null);
+        setActivePuzzleGame(null);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [encounterWardenId, activeBossCutscene, activeTrialGame, playSfx]);
+  }, [encounterWardenId, activeBossCutscene, activeTrialGame, activePuzzleGame, playSfx]);
 
   // Fast Travel handler
   const handleFastTravel = useCallback(
@@ -230,6 +250,30 @@ export const PhaserOverworld: React.FC = () => {
 
     setActiveTrialGame(null);
     setChallengingWardenRegion(null);
+  };
+
+  const handlePuzzleVictory = (gameId: PuzzleGameId, score: number) => {
+    const meta = PUZZLE_GAMES_METADATA[gameId];
+    const pigment = meta ? meta.pigment : 'frost-cyan';
+
+    recordGameResult(gameId, true, score);
+    stampSeal(pigment, score);
+    unlockPigment(pigment);
+
+    playSfx('victory');
+    playSfx('seal-stamp');
+
+    const hex = PIGMENT_REGISTRY[pigment].colorHex;
+    try {
+      confetti({
+        particleCount: 85,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: [hex, '#f4ebd0', '#141414'],
+      });
+    } catch {}
+
+    setActivePuzzleGame(null);
   };
 
   const activeRegion = CONTINENTAL_REGIONS[currentRegionId] || CONTINENTAL_REGIONS['river-crossings'];
@@ -360,7 +404,7 @@ export const PhaserOverworld: React.FC = () => {
                 <p className="text-[11px] font-mono text-[#f4ebd0]/70">
                   Requires <strong style={{ color: PIGMENT_REGISTRY[barrierAlert.pigment].colorHex }}>
                     {PIGMENT_REGISTRY[barrierAlert.pigment].name}
-                  </strong> pigment to cross. Defeat the Warden in sacred combat trial!
+                  </strong> pigment to cross. Defeat the Warden or conquer the Regional Trial!
                 </p>
               </div>
             </div>
@@ -392,6 +436,10 @@ export const PhaserOverworld: React.FC = () => {
           isOpen={true}
           onClose={() => setEncounterWardenId(null)}
           onChallenge={handleWardenChallenge}
+          onLaunchPuzzle={(gameId) => {
+            setEncounterWardenId(null);
+            setActivePuzzleGame(gameId);
+          }}
           isUnlocked={hasPigment(CONTINENTAL_REGIONS[encounterWardenId]?.pigment)}
         />
       )}
@@ -456,7 +504,88 @@ export const PhaserOverworld: React.FC = () => {
         />
       )}
 
-      {/* 10. Continental World Map Modal */}
+      {/* 10. Strategy & Puzzle Minigame Modals */}
+      {activePuzzleGame === 'ink-slide' && (
+        <InkSlideModal
+          isOpen={true}
+          onClose={() => setActivePuzzleGame(null)}
+          onVictory={() => handlePuzzleVictory('ink-slide', 100)}
+        />
+      )}
+
+      {activePuzzleGame === 'ink-fleet' && (
+        <InkFleetModal
+          isOpen={true}
+          onClose={() => setActivePuzzleGame(null)}
+          onVictory={() => handlePuzzleVictory('ink-fleet', 100)}
+        />
+      )}
+
+      {activePuzzleGame === 'archery' && (
+        <ArcheryModal
+          isOpen={true}
+          onClose={() => setActivePuzzleGame(null)}
+          onVictory={() => handlePuzzleVictory('archery', 100)}
+        />
+      )}
+
+      {activePuzzleGame === 'uno' && (
+        <UnoModal
+          isOpen={true}
+          onClose={() => setActivePuzzleGame(null)}
+          onVictory={() => handlePuzzleVictory('uno', 100)}
+        />
+      )}
+
+      {activePuzzleGame === 'bloom' && (
+        <BloomModal
+          isOpen={true}
+          onClose={() => setActivePuzzleGame(null)}
+          onVictory={() => handlePuzzleVictory('bloom', 100)}
+        />
+      )}
+
+      {activePuzzleGame === 'quick-draw' && (
+        <QuickDrawModal
+          isOpen={true}
+          onClose={() => setActivePuzzleGame(null)}
+          onVictory={() => handlePuzzleVictory('quick-draw', 100)}
+        />
+      )}
+
+      {activePuzzleGame === 'connect4' && (
+        <Connect4Modal
+          isOpen={true}
+          onClose={() => setActivePuzzleGame(null)}
+          onVictory={() => handlePuzzleVictory('connect4', 100)}
+        />
+      )}
+
+      {activePuzzleGame === 'gomoku' && (
+        <GomokuModal
+          isOpen={true}
+          onClose={() => setActivePuzzleGame(null)}
+          onVictory={() => handlePuzzleVictory('gomoku', 100)}
+        />
+      )}
+
+      {activePuzzleGame === 'sudoku' && (
+        <SudokuModal
+          isOpen={true}
+          onClose={() => setActivePuzzleGame(null)}
+          onVictory={() => handlePuzzleVictory('sudoku', 100)}
+        />
+      )}
+
+      {activePuzzleGame === 'memory' && (
+        <MemoryFlipModal
+          isOpen={true}
+          onClose={() => setActivePuzzleGame(null)}
+          onVictory={() => handlePuzzleVictory('memory', 100)}
+        />
+      )}
+
+      {/* 11. Continental World Map Modal */}
       <WorldMapModal
         isOpen={isMapOpen}
         onClose={() => setIsMapOpen(false)}

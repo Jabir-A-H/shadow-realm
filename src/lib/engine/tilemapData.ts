@@ -1,8 +1,19 @@
 import { Pigment } from '../../contexts/SpectrumContext';
+import { PuzzleGameId } from '../games/puzzleGameTypes';
 
 export interface OverworldPoint {
   x: number;
   y: number;
+}
+
+export interface RegionalLandmark {
+  id: string;
+  name: string;
+  gameId: PuzzleGameId;
+  x: number;
+  y: number;
+  type: 'sanctum-gate' | 'autonomous-landmark' | 'citadel-archive';
+  gatekeeperForWarden?: boolean;
 }
 
 export interface RegionZone {
@@ -14,6 +25,7 @@ export interface RegionZone {
   wardenShrine: OverworldPoint;
   signatureGame: string;
   description: string;
+  landmarks?: RegionalLandmark[];
 }
 
 export interface ColorGateTrigger {
@@ -38,6 +50,17 @@ export const CONTINENTAL_REGIONS: Record<string, RegionZone> = {
     wardenShrine: { x: 1600, y: 300 },
     signatureGame: 'Ink Slide & Ma-ai Boss Duel',
     description: 'A desolate snowscape where icy gusts whisper ancient oaths beneath The Wall.',
+    landmarks: [
+      {
+        id: 'glacial-gate',
+        name: 'Glacial Gate of Ice',
+        gameId: 'ink-slide',
+        x: 1600,
+        y: 450,
+        type: 'sanctum-gate',
+        gatekeeperForWarden: true,
+      },
+    ],
   },
   'drowned-isles': {
     id: 'drowned-isles',
@@ -48,6 +71,16 @@ export const CONTINENTAL_REGIONS: Record<string, RegionZone> = {
     wardenShrine: { x: 550, y: 920 },
     signatureGame: 'Ink Fleet (Naval Battleship)',
     description: 'Jagged sea stacks shrouded in impenetrable salty mist.',
+    landmarks: [
+      {
+        id: 'abyssal-harbor',
+        name: 'Abyssal Bay Harbor',
+        gameId: 'ink-fleet',
+        x: 450,
+        y: 1050,
+        type: 'autonomous-landmark',
+      },
+    ],
   },
   'river-crossings': {
     id: 'river-crossings',
@@ -58,6 +91,16 @@ export const CONTINENTAL_REGIONS: Record<string, RegionZone> = {
     wardenShrine: { x: 1600, y: 920 },
     signatureGame: 'Ink Rush & Reaction-Time Quick Draw',
     description: 'The roaring fork of the continental rivers, crisscrossed by stone bridges.',
+    landmarks: [
+      {
+        id: 'bamboo-teahouse',
+        name: 'Bamboo Grove Teahouse',
+        gameId: 'quick-draw',
+        x: 1350,
+        y: 1050,
+        type: 'autonomous-landmark',
+      },
+    ],
   },
   'high-vale': {
     id: 'high-vale',
@@ -68,6 +111,16 @@ export const CONTINENTAL_REGIONS: Record<string, RegionZone> = {
     wardenShrine: { x: 2650, y: 920 },
     signatureGame: 'Archery & Ink Impact (Sky Shmup)',
     description: 'Impregnable sky needles scraping the upper atmosphere.',
+    landmarks: [
+      {
+        id: 'yoichi-peak',
+        name: "Yoichi's Peak Range",
+        gameId: 'archery',
+        x: 2800,
+        y: 820,
+        type: 'autonomous-landmark',
+      },
+    ],
   },
   'gilded-vault': {
     id: 'gilded-vault',
@@ -78,6 +131,16 @@ export const CONTINENTAL_REGIONS: Record<string, RegionZone> = {
     wardenShrine: { x: 600, y: 1600 },
     signatureGame: 'Uno (The Gilded Den)',
     description: 'A subterranean labyrinth of molten gold and underground high-stakes parlors.',
+    landmarks: [
+      {
+        id: 'gilded-speakeasy',
+        name: 'The Gilded Speakeasy',
+        gameId: 'uno',
+        x: 450,
+        y: 1720,
+        type: 'autonomous-landmark',
+      },
+    ],
   },
   'verdant-reach': {
     id: 'verdant-reach',
@@ -88,6 +151,16 @@ export const CONTINENTAL_REGIONS: Record<string, RegionZone> = {
     wardenShrine: { x: 2600, y: 1600 },
     signatureGame: 'Bloom (Chain Reaction)',
     description: 'Lush terraced orchards, thorny hedgerows, and cascading blossom groves.',
+    landmarks: [
+      {
+        id: 'thornwood-orchard',
+        name: 'Thornwood Orchard',
+        gameId: 'bloom',
+        x: 2450,
+        y: 1720,
+        type: 'autonomous-landmark',
+      },
+    ],
   },
   'scorched-dunes': {
     id: 'scorched-dunes',
@@ -98,6 +171,25 @@ export const CONTINENTAL_REGIONS: Record<string, RegionZone> = {
     wardenShrine: { x: 1600, y: 1600 },
     signatureGame: 'Connect-4, Gomoku & Rogue Outlaw Arena',
     description: 'A sun-bleached desert where red sands hide forgotten warrior tombs.',
+    landmarks: [
+      {
+        id: 'viper-pavilion',
+        name: "The Red Viper's Pavilion",
+        gameId: 'connect4',
+        x: 1400,
+        y: 1720,
+        type: 'sanctum-gate',
+        gatekeeperForWarden: true,
+      },
+      {
+        id: 'dune-stones',
+        name: 'Dune Gomoku Arena',
+        gameId: 'gomoku',
+        x: 1800,
+        y: 1720,
+        type: 'autonomous-landmark',
+      },
+    ],
   },
   'obsidian-citadel': {
     id: 'obsidian-citadel',
@@ -108,6 +200,24 @@ export const CONTINENTAL_REGIONS: Record<string, RegionZone> = {
     wardenShrine: { x: 1600, y: 2150 },
     signatureGame: 'Sudoku, Memory Flip & The Ancient Seal Climax',
     description: 'The monumental black glass library where the Great Scroll was originally shattered.',
+    landmarks: [
+      {
+        id: 'citadel-scriptorium',
+        name: 'Citadel Scriptorium',
+        gameId: 'sudoku',
+        x: 1350,
+        y: 2200,
+        type: 'citadel-archive',
+      },
+      {
+        id: 'glyph-archive',
+        name: 'Archive of Lost Glyphs',
+        gameId: 'memory',
+        x: 1850,
+        y: 2200,
+        type: 'citadel-archive',
+      },
+    ],
   },
 };
 

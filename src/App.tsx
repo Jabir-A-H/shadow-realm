@@ -87,7 +87,7 @@ export const App: React.FC = () => {
             <h1 className="font-serif tracking-widest text-lg md:text-xl font-bold text-[#f4ebd0] flex items-center gap-2">
               SHADOW REALM
               <span className="text-xs font-mono font-normal tracking-normal text-[#e0a96d] bg-[#b3312c]/30 px-2 py-0.5 rounded border border-[#b3312c]/50">
-                PHASE 3: ACTION TRIALS
+                PHASE 4: STRATEGY & PUZZLE TRIALS
               </span>
             </h1>
             <p className="text-xs text-[#f4ebd0]/60 tracking-wider">

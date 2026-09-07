@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Swords, Scroll, X, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Swords, Scroll, X, Sparkles, CheckCircle2, Lock, Gamepad2 } from 'lucide-react';
 import { CONTINENTAL_REGIONS } from '../../lib/engine/tilemapData';
 import { PIGMENT_REGISTRY, Pigment } from '../../contexts/SpectrumContext';
 import { useAudio } from '../../contexts/AudioContext';
+import { useSaveGame } from '../../contexts/SaveGameContext';
+import { PuzzleGameId, PUZZLE_GAMES_METADATA } from '../../lib/games/puzzleGameTypes';
 
 interface DialogueOverlayProps {
   regionId: string;
   isOpen: boolean;
   onClose: () => void;
   onChallenge: (pigment: Pigment) => void;
+  onLaunchPuzzle?: (gameId: PuzzleGameId) => void;
   isUnlocked: boolean;
 }
 
@@ -61,15 +64,27 @@ export const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
   isOpen,
   onClose,
   onChallenge,
+  onLaunchPuzzle,
   isUnlocked,
 }) => {
   const { playSfx } = useAudio();
+  const { saveData } = useSaveGame();
   const [dialogueState, setDialogueState] = useState<'intro' | 'guidance' | 'challenge'>('intro');
 
   const region = CONTINENTAL_REGIONS[regionId] || CONTINENTAL_REGIONS['river-crossings'];
   const pigment = region.pigment;
   const pigmentData = PIGMENT_REGISTRY[pigment];
   const banter = WARDEN_LORE_BANTER[regionId] || WARDEN_LORE_BANTER['river-crossings'];
+
+  // Gatekeeper gauntlet checks
+  const gatekeeperLandmark = region.landmarks?.find((l) => l.gatekeeperForWarden);
+  const isGatekeeperCleared = gatekeeperLandmark
+    ? (saveData.minigames[gatekeeperLandmark.gameId]?.gamesWon ?? 0) > 0
+    : true;
+  const gatekeeperMeta = gatekeeperLandmark ? PUZZLE_GAMES_METADATA[gatekeeperLandmark.gameId] : null;
+
+  const strategyLandmark = region.landmarks?.[0];
+  const strategyMeta = strategyLandmark ? PUZZLE_GAMES_METADATA[strategyLandmark.gameId] : null;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -80,15 +95,20 @@ export const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
         onClose();
       } else if (e.key === 'Enter' || e.key === 'e' || e.key === 'E') {
         e.preventDefault();
-        playSfx('clash');
-        setDialogueState('challenge');
-        onChallenge(pigment);
+        if (isGatekeeperCleared) {
+          playSfx('clash');
+          setDialogueState('challenge');
+          onChallenge(pigment);
+        } else if (gatekeeperLandmark && onLaunchPuzzle) {
+          playSfx('parchment');
+          onLaunchPuzzle(gatekeeperLandmark.gameId);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, pigment, onChallenge, onClose, playSfx]);
+  }, [isOpen, pigment, onChallenge, onClose, playSfx, isGatekeeperCleared, gatekeeperLandmark, onLaunchPuzzle]);
 
   if (!isOpen) return null;
 
@@ -208,48 +228,114 @@ export const DialogueOverlay: React.FC<DialogueOverlayProps> = ({
                   <strong>Pigment Effect:</strong> {pigmentData.perceptiveAbility}
                 </span>
               </div>
+
+              {/* Gatekeeper Barrier Notice */}
+              {gatekeeperLandmark && !isGatekeeperCleared && (
+                <div className="mt-3 p-3 rounded-xl bg-[#2b1717] border border-[#b3312c]/70 flex items-start gap-2.5 text-xs text-[#f4ebd0]">
+                  <Lock size={16} className="text-[#b3312c] shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="text-[#e0a96d]">Sanctum Gatekeeper Barrier:</strong>
+                    <p className="text-[11px] text-[#f4ebd0]/80 mt-0.5">
+                      The Warden will not draw their blade until you conquer the{' '}
+                      <strong className="text-white">{gatekeeperLandmark.name}</strong> ({gatekeeperMeta?.title}).
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
             <div className="space-y-2 pt-2 border-t border-[#262626]">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  onClick={() => {
-                    playSfx('clash');
-                    setDialogueState('challenge');
-                    onChallenge(pigment);
-                  }}
-                  className="px-4 py-2.5 rounded-xl font-serif text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg"
-                  style={{
-                    backgroundColor: pigmentData.colorHex,
-                    color: '#141414',
-                  }}
-                >
-                  <Swords size={16} />
-                  <span>{isUnlocked ? 'Re-Challenge Warden' : 'Challenge to Sacred Trial'}</span>
-                </button>
+                {gatekeeperLandmark && !isGatekeeperCleared ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        playSfx('parchment');
+                        onLaunchPuzzle?.(gatekeeperLandmark.gameId);
+                      }}
+                      className="px-4 py-2.5 rounded-xl font-serif text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg bg-[#b3312c] hover:bg-[#c93b35] text-white"
+                    >
+                      <Gamepad2 size={16} />
+                      <span>Conquer Gate: {gatekeeperLandmark.name}</span>
+                    </button>
 
+                    <button
+                      disabled={true}
+                      className="px-4 py-2.5 rounded-xl font-serif text-xs font-medium opacity-50 cursor-not-allowed bg-[#222] border border-[#333] text-[#888] flex items-center justify-center gap-2"
+                      title="Clear the Gatekeeper Trial first"
+                    >
+                      <Lock size={14} />
+                      <span>Martial Duel Locked</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        playSfx('clash');
+                        setDialogueState('challenge');
+                        onChallenge(pigment);
+                      }}
+                      className="px-4 py-2.5 rounded-xl font-serif text-xs font-bold transition flex items-center justify-center gap-2 shadow-lg"
+                      style={{
+                        backgroundColor: pigmentData.colorHex,
+                        color: '#141414',
+                      }}
+                    >
+                      <Swords size={16} />
+                      <span>{isUnlocked ? 'Re-Challenge Warden' : 'Challenge to Sacred Trial'}</span>
+                    </button>
+
+                    {strategyLandmark && onLaunchPuzzle ? (
+                      <button
+                        onClick={() => {
+                          playSfx('parchment');
+                          onLaunchPuzzle(strategyLandmark.gameId);
+                        }}
+                        className="px-4 py-2.5 rounded-xl bg-[#252525] hover:bg-[#303030] text-[#f4ebd0] border border-[#3a3a3a] font-serif text-xs font-medium transition flex items-center justify-center gap-2"
+                      >
+                        <Gamepad2 size={16} style={{ color: pigmentData.colorHex }} />
+                        <span>Play {strategyMeta?.title || strategyLandmark.name}</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          playSfx('parchment');
+                          setDialogueState('guidance');
+                        }}
+                        className="px-4 py-2.5 rounded-xl bg-[#252525] hover:bg-[#303030] text-[#f4ebd0] border border-[#3a3a3a] font-serif text-xs font-medium transition flex items-center justify-center gap-2"
+                      >
+                        <Scroll size={16} className="text-[#e0a96d]" />
+                        <span>Inquire on Pigment</span>
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
                 <button
                   onClick={() => {
                     playSfx('parchment');
                     setDialogueState('guidance');
                   }}
-                  className="px-4 py-2.5 rounded-xl bg-[#252525] hover:bg-[#303030] text-[#f4ebd0] border border-[#3a3a3a] font-serif text-xs font-medium transition flex items-center justify-center gap-2"
+                  className="text-xs font-mono text-[#e0a96d]/80 hover:text-[#e0a96d] transition flex items-center gap-1.5"
                 >
-                  <Scroll size={16} className="text-[#e0a96d]" />
-                  <span>Inquire on Pigment</span>
+                  <Scroll size={13} />
+                  <span>Lore & Pigment Insight</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    playSfx('click');
+                    onClose();
+                  }}
+                  className="text-xs font-mono text-[#f4ebd0]/50 hover:text-[#f4ebd0] transition text-right"
+                >
+                  Take Leave (Return to Overworld)
                 </button>
               </div>
-
-              <button
-                onClick={() => {
-                  playSfx('click');
-                  onClose();
-                }}
-                className="w-full py-2 text-xs font-mono text-[#f4ebd0]/50 hover:text-[#f4ebd0] transition text-center"
-              >
-                Take Leave (Return to Overworld)
-              </button>
             </div>
           </div>
         </motion.div>

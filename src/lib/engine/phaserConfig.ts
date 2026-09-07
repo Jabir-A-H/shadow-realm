@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { OverworldScene } from './overworldScene';
 import { Pigment } from '../../contexts/SpectrumContext';
+import { RegionalLandmark } from './tilemapData';
 
 export interface OverworldCallbacks {
   onRegionChange: (regionId: string, regionName: string) => void;
@@ -8,6 +9,7 @@ export interface OverworldCallbacks {
   onWardenEncounter: (wardenId: string, shrineCoords: { x: number; y: number }) => void;
   onBarrierEncounter: (barrierName: string, requiredPigment: Pigment, isUnlocked: boolean) => void;
   onPlaySfx?: (sfxName: string) => void;
+  onLandmarkEncounter?: (landmark: RegionalLandmark) => void;
 }
 
 export interface CreateOverworldGameOptions {
