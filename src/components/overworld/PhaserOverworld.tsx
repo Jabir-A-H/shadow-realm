@@ -6,11 +6,13 @@ import {
   Gamepad2,
   Volume2,
   VolumeX,
+  Menu,
 } from 'lucide-react';
 import {
   createOverworldGame,
   OverworldGameHandle,
   OverworldCallbacks,
+  NearbyInteractableInfo,
 } from '../../lib/engine/phaserConfig';
 import { useSpectrum, Pigment, PIGMENT_REGISTRY } from '../../contexts/SpectrumContext';
 import { useSaveGame } from '../../contexts/SaveGameContext';
@@ -54,7 +56,11 @@ const getTrialForRegion = (regionId: string): ActionGameId => {
   }
 };
 
-export const PhaserOverworld: React.FC = () => {
+export interface PhaserOverworldProps {
+  onOpenMenu?: () => void;
+}
+
+export const PhaserOverworld: React.FC<PhaserOverworldProps> = ({ onOpenMenu }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameHandleRef = useRef<OverworldGameHandle | null>(null);
 
@@ -79,6 +85,7 @@ export const PhaserOverworld: React.FC = () => {
   const [encounterWardenId, setEncounterWardenId] = useState<string | null>(null);
   const [regionBanner, setRegionBanner] = useState<{ name: string; motto: string } | null>(null);
   const [barrierAlert, setBarrierAlert] = useState<{ name: string; pigment: Pigment } | null>(null);
+  const [nearbyInteractable, setNearbyInteractable] = useState<NearbyInteractableInfo | null>(null);
 
   // Trial Action & Strategy Minigame State
   const [activeBossCutscene, setActiveBossCutscene] = useState<ActionGameId | null>(null);
@@ -136,6 +143,10 @@ export const PhaserOverworld: React.FC = () => {
         setTimeout(() => {
           setBarrierAlert(null);
         }, 3000);
+      },
+
+      onNearbyInteractableChange: (interactable) => {
+        setNearbyInteractable(interactable);
       },
 
       onPlaySfx: (sfxName) => {
@@ -296,10 +307,10 @@ export const PhaserOverworld: React.FC = () => {
             playSfx('parchment');
             setIsMapOpen(true);
           }}
-          className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-[#1a1a1a]/85 backdrop-blur-md border border-[#333] shadow-lg cursor-pointer hover:border-[#e0a96d] transition group"
+          className="flex items-center gap-2.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-[#1a1a1a]/85 backdrop-blur-md border border-[#333] shadow-lg cursor-pointer hover:border-[#e0a96d] transition group"
         >
           <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center font-serif text-xs font-bold shadow"
+            className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center font-serif text-xs font-bold shadow shrink-0"
             style={{
               backgroundColor: activePigment.colorHex,
               color: '#141414',
@@ -312,32 +323,46 @@ export const PhaserOverworld: React.FC = () => {
               <span className="font-serif font-bold text-xs text-[#f4ebd0] group-hover:text-[#e0a96d] transition-colors">
                 {activeRegion.name}
               </span>
-              <span className="text-[10px] font-mono text-[#f4ebd0]/40">
+              <span className="text-[10px] font-mono text-[#f4ebd0]/40 hidden sm:inline">
                 ({currentCoords.x}, {currentCoords.y})
               </span>
             </div>
-            <p className="text-[10px] text-[#f4ebd0]/50 font-mono">
+            <p className="text-[10px] text-[#f4ebd0]/50 font-mono hidden sm:block">
               Press <kbd className="px-1 py-0.5 rounded bg-[#2a2a2a] text-[#f4ebd0] font-bold">M</kbd> for Continent Map
             </p>
           </div>
         </div>
       </div>
 
-      {/* 3. Top-Right HUD: Quick Action Toggles */}
+      {/* 3. Top-Right HUD: Quick Action Toggles & Mobile Menu */}
       <div className="absolute top-4 right-4 z-20 pointer-events-auto flex items-center gap-2">
+        {onOpenMenu && (
+          <button
+            onClick={() => {
+              playSfx('click');
+              onOpenMenu();
+            }}
+            className="px-2.5 py-2 rounded-xl bg-[#b3312c]/85 hover:bg-[#b3312c] backdrop-blur-md border border-[#f4ebd0]/30 text-[#f4ebd0] shadow-lg transition flex items-center gap-1.5 active:scale-95"
+            title="Open Game Menu"
+          >
+            <Menu size={17} />
+            <span className="text-xs font-serif font-bold">MENU</span>
+          </button>
+        )}
+
         <button
           onClick={() => {
             playSfx('click');
             setShowTouchControls((prev) => !prev);
           }}
-          className={`p-2.5 rounded-xl backdrop-blur-md border transition ${
+          className={`p-2 sm:p-2.5 rounded-xl backdrop-blur-md border transition ${
             showTouchControls
               ? 'bg-[#b3312c]/30 border-[#b3312c] text-[#f4ebd0]'
               : 'bg-[#1a1a1a]/80 border-[#333] text-[#f4ebd0]/70 hover:text-white'
           }`}
           title="Toggle Mobile Touch Controls"
         >
-          <Gamepad2 size={18} />
+          <Gamepad2 size={17} />
         </button>
 
         <button
@@ -345,10 +370,10 @@ export const PhaserOverworld: React.FC = () => {
             playSfx('parchment');
             setIsMapOpen(true);
           }}
-          className="p-2.5 rounded-xl bg-[#1a1a1a]/80 backdrop-blur-md border border-[#333] hover:border-[#e0a96d] text-[#f4ebd0]/80 hover:text-white transition"
+          className="p-2 sm:p-2.5 rounded-xl bg-[#1a1a1a]/80 backdrop-blur-md border border-[#333] hover:border-[#e0a96d] text-[#f4ebd0]/80 hover:text-white transition"
           title="Open World Map (M)"
         >
-          <Compass size={18} />
+          <Compass size={17} />
         </button>
 
         <button
@@ -356,10 +381,10 @@ export const PhaserOverworld: React.FC = () => {
             playSfx('click');
             toggleMute();
           }}
-          className="p-2.5 rounded-xl bg-[#1a1a1a]/80 backdrop-blur-md border border-[#333] hover:border-[#48cae4] text-[#f4ebd0]/80 hover:text-white transition"
+          className="p-2 sm:p-2.5 rounded-xl bg-[#1a1a1a]/80 backdrop-blur-md border border-[#333] hover:border-[#48cae4] text-[#f4ebd0]/80 hover:text-white transition"
           title={isMuted ? 'Unmute SFX' : 'Mute SFX'}
         >
-          {isMuted ? <VolumeX size={18} className="text-red-400" /> : <Volume2 size={18} />}
+          {isMuted ? <VolumeX size={17} className="text-red-400" /> : <Volume2 size={17} />}
         </button>
       </div>
 
@@ -412,7 +437,36 @@ export const PhaserOverworld: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* 6. On-Screen Virtual Touch Controls (Optional/Mobile) */}
+      {/* 6. Floating Center Action Banner for Touch / Direct Mobile Interaction */}
+      <AnimatePresence>
+        {nearbyInteractable && (
+          <motion.div
+            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="absolute bottom-[max(9.5rem,calc(env(safe-area-inset-bottom,0px)+8.5rem))] inset-x-0 mx-auto w-fit z-30 pointer-events-auto px-4"
+          >
+            <button
+              onClick={() => {
+                if (gameHandleRef.current) {
+                  gameHandleRef.current.triggerInteract();
+                }
+              }}
+              className="px-5 py-2.5 rounded-full bg-gradient-to-r from-[#b3312c] to-[#d64038] text-[#f4ebd0] font-serif font-bold text-xs sm:text-sm tracking-wide shadow-2xl shadow-black/80 border border-[#f4ebd0]/40 active:scale-95 transition-transform flex items-center gap-2 animate-pulse"
+            >
+              <span>🏮</span>
+              <span>
+                {nearbyInteractable.type === 'landmark'
+                  ? `Tap to Enter: ${nearbyInteractable.name}`
+                  : `Tap to Speak with: ${nearbyInteractable.name}`}
+              </span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 7. On-Screen Virtual Touch Controls (Optional/Mobile) */}
       {showTouchControls && (
         <VirtualJoystick
           onMove={(vec) => {
@@ -425,7 +479,15 @@ export const PhaserOverworld: React.FC = () => {
               gameHandleRef.current.triggerInteract();
             }
           }}
-          hasNearbyInteractable={true}
+          hasNearbyInteractable={Boolean(nearbyInteractable)}
+          interactType={nearbyInteractable?.type}
+          interactLabel={
+            nearbyInteractable
+              ? nearbyInteractable.type === 'landmark'
+                ? 'ENTER'
+                : 'TALK'
+              : undefined
+          }
         />
       )}
 

@@ -3,6 +3,13 @@ import { OverworldScene } from './overworldScene';
 import { Pigment } from '../../contexts/SpectrumContext';
 import { RegionalLandmark } from './tilemapData';
 
+export interface NearbyInteractableInfo {
+  type: 'warden' | 'landmark';
+  name: string;
+  id: string;
+  landmark?: RegionalLandmark;
+}
+
 export interface OverworldCallbacks {
   onRegionChange: (regionId: string, regionName: string) => void;
   onPlayerMove: (coords: { x: number; y: number; facing: 'up' | 'down' | 'left' | 'right'; currentRegion?: string }) => void;
@@ -10,6 +17,7 @@ export interface OverworldCallbacks {
   onBarrierEncounter: (barrierName: string, requiredPigment: Pigment, isUnlocked: boolean) => void;
   onPlaySfx?: (sfxName: string) => void;
   onLandmarkEncounter?: (landmark: RegionalLandmark) => void;
+  onNearbyInteractableChange?: (interactable: NearbyInteractableInfo | null) => void;
 }
 
 export interface CreateOverworldGameOptions {

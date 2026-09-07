@@ -66,6 +66,7 @@ export class OverworldScene extends Phaser.Scene {
   private promptText!: Phaser.GameObjects.Text;
   private activeNearbyShrine: ShrineEntity | null = null;
   private activeNearbyLandmark: LandmarkEntity | null = null;
+  private lastReportedInteractableId: string | null = null;
 
   // Movement & State
   private virtualInputVector: { x: number; y: number } = { x: 0, y: 0 };
@@ -1273,6 +1274,17 @@ export class OverworldScene extends Phaser.Scene {
         ease: 'Sine.easeInOut',
       });
 
+      // Enable direct tap/touch interaction on Warden Sprite
+      wardenSprite.setInteractive({ useHandCursor: true });
+      wardenSprite.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        pointer.event?.stopPropagation?.();
+        const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, x, y);
+        if (dist <= 130) {
+          this.activeNearbyShrine = this.shrines.find((s) => s.regionId === reg.id) || null;
+          this.triggerActionInteract();
+        }
+      });
+
       // 4. Floating English Rune Banner Overhead (ICE, SEA, SKY, etc.)
       const runeWord = this.getPigmentRune(reg.pigment);
       const runeText = this.add
@@ -1349,6 +1361,17 @@ export class OverworldScene extends Phaser.Scene {
           yoyo: true,
           repeat: -1,
           ease: 'Sine.easeInOut',
+        });
+
+        // Enable direct tap/touch interaction on Landmark Sprite
+        sprite.setInteractive({ useHandCursor: true });
+        sprite.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+          pointer.event?.stopPropagation?.();
+          const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, x, y);
+          if (dist <= 130) {
+            this.activeNearbyLandmark = this.landmarks.find((l) => l.landmark.id === landmark.id) || null;
+            this.triggerActionInteract();
+          }
         });
 
         // 3. Floating name & sign banner overhead
@@ -1649,16 +1672,16 @@ export class OverworldScene extends Phaser.Scene {
     this.promptContainer.setDepth(3500);
     this.promptContainer.setVisible(false);
 
-    // Rounded parchment prompt bubble
+    // Rounded parchment prompt bubble with larger hit area for touch
     const bg = this.add.graphics();
     bg.fillStyle(0x141414, 0.95);
-    bg.fillRoundedRect(-80, -20, 160, 40, 20);
-    bg.lineStyle(2, 0xe0a96d, 0.95);
-    bg.strokeRoundedRect(-80, -20, 160, 40, 20);
+    bg.fillRoundedRect(-125, -22, 250, 44, 22);
+    bg.lineStyle(2.5, 0xe0a96d, 0.95);
+    bg.strokeRoundedRect(-125, -22, 250, 44, 22);
     this.promptContainer.add(bg);
 
     this.promptText = this.add
-      .text(0, 0, '⚔️ Press [E / Enter] / Tap', {
+      .text(0, 0, '🏮 Tap to Enter', {
         fontFamily: "'Cinzel', serif",
         fontSize: '13px',
         fontStyle: 'bold',
@@ -1666,6 +1689,14 @@ export class OverworldScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.promptContainer.add(this.promptText);
+
+    // Make the entire prompt bubble clickable and touch-interactive!
+    this.promptContainer.setSize(250, 44);
+    this.promptContainer.setInteractive({ useHandCursor: true });
+    this.promptContainer.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      pointer.event?.stopPropagation?.();
+      this.triggerActionInteract();
+    });
 
     // Floating bob animation
     this.tweens.add({
@@ -1680,7 +1711,7 @@ export class OverworldScene extends Phaser.Scene {
 
   private checkProximityToInteractables() {
     let closestShrine: ShrineEntity | null = null;
-    let minShrineDist = 85;
+    let minShrineDist = 95;
 
     for (const shrine of this.shrines) {
       const dist = Phaser.Math.Distance.Between(
@@ -1696,7 +1727,7 @@ export class OverworldScene extends Phaser.Scene {
     }
 
     let closestLandmark: LandmarkEntity | null = null;
-    let minLandmarkDist = 80;
+    let minLandmarkDist = 90;
 
     for (const lm of this.landmarks) {
       const dist = Phaser.Math.Distance.Between(
@@ -1711,22 +1742,48 @@ export class OverworldScene extends Phaser.Scene {
       }
     }
 
+    const isTouch = Boolean(this.sys.game?.device?.input?.touch || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0));
+
     if (closestShrine && minShrineDist <= minLandmarkDist) {
       this.activeNearbyShrine = closestShrine;
       this.activeNearbyLandmark = null;
-      this.promptText.setText('⚔️ [E] Speak with Warden');
+      this.promptText.setText(isTouch ? '⚔️ Tap to Talk with Warden' : '⚔️ [E / Tap] Speak with Warden');
       this.promptContainer.setPosition(closestShrine.x, closestShrine.y - 85);
       this.promptContainer.setVisible(true);
+
+      if (this.lastReportedInteractableId !== closestShrine.regionId) {
+        this.lastReportedInteractableId = closestShrine.regionId;
+        this.callbacks.onNearbyInteractableChange?.({
+          type: 'warden',
+          name: CONTINENTAL_REGIONS[closestShrine.regionId]?.name || 'Warden Shrine',
+          id: closestShrine.regionId,
+        });
+      }
     } else if (closestLandmark) {
       this.activeNearbyLandmark = closestLandmark;
       this.activeNearbyShrine = null;
-      this.promptText.setText(`📜 [E] ${closestLandmark.landmark.name}`);
+      this.promptText.setText(isTouch ? `🏮 Tap to Enter: ${closestLandmark.landmark.name}` : `📜 [E / Tap] ${closestLandmark.landmark.name}`);
       this.promptContainer.setPosition(closestLandmark.x, closestLandmark.y - 75);
       this.promptContainer.setVisible(true);
+
+      if (this.lastReportedInteractableId !== closestLandmark.landmark.id) {
+        this.lastReportedInteractableId = closestLandmark.landmark.id;
+        this.callbacks.onNearbyInteractableChange?.({
+          type: 'landmark',
+          name: closestLandmark.landmark.name,
+          id: closestLandmark.landmark.id,
+          landmark: closestLandmark.landmark,
+        });
+      }
     } else {
       this.activeNearbyShrine = null;
       this.activeNearbyLandmark = null;
       this.promptContainer.setVisible(false);
+
+      if (this.lastReportedInteractableId !== null) {
+        this.lastReportedInteractableId = null;
+        this.callbacks.onNearbyInteractableChange?.(null);
+      }
     }
   }
 

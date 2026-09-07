@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Volume2,
   VolumeX,
@@ -15,6 +16,8 @@ import {
   Compass,
   Gamepad2,
   Flame,
+  X,
+  ArrowLeft,
 } from 'lucide-react';
 import { useSpectrum, PIGMENT_REGISTRY, Pigment, EnvironmentalBarrier } from './contexts/SpectrumContext';
 import { useSaveGame } from './contexts/SaveGameContext';
@@ -37,6 +40,7 @@ export const App: React.FC = () => {
   const { isMuted, toggleMute, playSfx } = useAudio();
 
   const [activeTab, setActiveTab] = useState<'overworld' | 'trials' | 'spectrum' | 'audio' | 'world'>('overworld');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   const handleSealClick = (_pigment: Pigment) => {
     playSfx('parchment');
@@ -76,9 +80,13 @@ export const App: React.FC = () => {
   ];
 
   return (
-    <div className="h-screen w-screen bg-[#141414] text-[#f4ebd0] flex flex-col font-sans select-none overflow-hidden">
-      {/* Top Header / Status Bar */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-[#2a2a2a] bg-[#1a1a1a]/80 backdrop-blur-md z-30">
+    <div className="min-h-[100dvh] h-[100dvh] w-screen bg-[#141414] text-[#f4ebd0] flex flex-col font-sans select-none overflow-hidden">
+      {/* Top Header / Status Bar - Hidden on mobile during Overworld exploration for pure game immersion */}
+      <header
+        className={`${
+          activeTab === 'overworld' ? 'hidden md:flex' : 'flex'
+        } items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3 border-b border-[#2a2a2a] bg-[#1a1a1a]/80 backdrop-blur-md z-30 shrink-0`}
+      >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-[#b3312c] flex items-center justify-center font-bold text-white shadow-lg shadow-[#b3312c]/30 text-sm border border-[#f4ebd0]/30 font-serif">
             <Swords size={18} />
@@ -126,14 +134,18 @@ export const App: React.FC = () => {
 
       {/* Main Canvas / Content Deck */}
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* Navigation Sidebar */}
-        <nav className="w-full md:w-64 bg-[#181818] border-b md:border-b-0 md:border-r border-[#2a2a2a] p-3 flex md:flex-col gap-2 shrink-0">
+        {/* Navigation Sidebar - Hidden on mobile during Overworld exploration */}
+        <nav
+          className={`${
+            activeTab === 'overworld' ? 'hidden md:flex' : 'flex'
+          } w-full md:w-64 bg-[#181818] border-b md:border-b-0 md:border-r border-[#2a2a2a] p-2 sm:p-3 flex md:flex-col gap-1.5 sm:gap-2 shrink-0 overflow-x-auto md:overflow-x-visible`}
+        >
           <button
             onClick={() => {
               playSfx('click');
               setActiveTab('overworld');
             }}
-            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition ${
+            className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition shrink-0 ${
               activeTab === 'overworld'
                 ? 'bg-[#2a2a2a] text-[#f4ebd0] border-l-4 border-[#b3312c] shadow-md'
                 : 'text-[#f4ebd0]/60 hover:bg-[#222] hover:text-[#f4ebd0]'
@@ -217,10 +229,27 @@ export const App: React.FC = () => {
         {/* Tab Viewport */}
         {activeTab === 'overworld' ? (
           <section className="flex-1 w-full h-full relative overflow-hidden bg-[#141414]">
-            <PhaserOverworld />
+            <PhaserOverworld onOpenMenu={() => setIsMobileMenuOpen(true)} />
           </section>
         ) : (
           <section className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#141414] bg-sumi-texture">
+            {/* Mobile Return to Overworld Action Header */}
+            <div className="md:hidden flex items-center justify-between pb-3 mb-4 border-b border-[#2a2a2a]">
+              <button
+                onClick={() => {
+                  playSfx('click');
+                  setActiveTab('overworld');
+                }}
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#b3312c] hover:bg-[#c73832] text-white text-xs font-serif font-bold shadow-md active:scale-95 transition"
+              >
+                <ArrowLeft size={16} />
+                <span>Return to Overworld</span>
+              </button>
+              <span className="text-xs font-mono text-[#e0a96d] uppercase">
+                {activeTab}
+              </span>
+            </div>
+
             {activeTab === 'trials' && <ArcadeTrialsView />}
 
             {activeTab === 'spectrum' && (
@@ -403,6 +432,135 @@ export const App: React.FC = () => {
           </section>
         )}
       </main>
+
+      {/* Mobile In-Game Pause / System Menu Modal */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 select-none"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-2xl bg-[#181818] border-2 border-[#b3312c]/60 shadow-2xl overflow-hidden text-[#f4ebd0]"
+            >
+              {/* Menu Header */}
+              <div className="p-4 border-b border-[#2a2a2a] bg-[#202020] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-[#b3312c] flex items-center justify-center text-white font-bold shadow text-xs">
+                    <Swords size={16} />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-sm tracking-wider">SHADOW REALM</h3>
+                    <p className="text-[10px] font-mono text-[#e0a96d]">SYSTEM & NAVIGATION MENU</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    playSfx('click');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="p-1.5 rounded-lg bg-[#2a2a2a] hover:bg-[#333] text-[#f4ebd0]/70 hover:text-white transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Menu Items */}
+              <div className="p-4 space-y-2 max-h-[70vh] overflow-y-auto">
+                <button
+                  onClick={() => {
+                    playSfx('click');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#b3312c] text-white font-serif font-bold text-sm shadow-md active:scale-95 transition"
+                >
+                  <Gamepad2 size={18} />
+                  <span>Resume Overworld</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    playSfx('click');
+                    setActiveTab('trials');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#222] hover:bg-[#2a2a2a] border border-[#333] text-xs font-serif font-medium active:scale-95 transition"
+                >
+                  <Flame size={16} className="text-[#e0a96d]" />
+                  <span>Action Trials (Minigames)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    playSfx('click');
+                    setActiveTab('spectrum');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#222] hover:bg-[#2a2a2a] border border-[#333] text-xs font-serif font-medium active:scale-95 transition"
+                >
+                  <Sparkles size={16} className="text-[#ffd166]" />
+                  <span>7 Vermilion Seals ({unlockedPigments.length}/8)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    playSfx('click');
+                    setActiveTab('world');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#222] hover:bg-[#2a2a2a] border border-[#333] text-xs font-serif font-medium active:scale-95 transition"
+                >
+                  <Compass size={16} className="text-[#2d6a4f]" />
+                  <span>Continental Perception & Barriers</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    playSfx('click');
+                    setActiveTab('audio');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#222] hover:bg-[#2a2a2a] border border-[#333] text-xs font-serif font-medium active:scale-95 transition"
+                >
+                  <Music size={16} className="text-[#48cae4]" />
+                  <span>Procedural Sound Synthesizer</span>
+                </button>
+
+                <div className="pt-2 border-t border-[#2a2a2a] flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      playSfx('click');
+                      toggleMute();
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-[#222] border border-[#333] text-xs font-mono text-[#f4ebd0]/80"
+                  >
+                    {isMuted ? <VolumeX size={15} className="text-red-400" /> : <Volume2 size={15} />}
+                    <span>{isMuted ? 'Unmute SFX' : 'Mute SFX'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleResetAll();
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-red-950/40 border border-red-800/40 text-xs font-mono text-red-300"
+                  >
+                    <RotateCcw size={14} />
+                    <span>Reset</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
